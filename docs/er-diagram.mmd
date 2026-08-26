@@ -1,0 +1,57 @@
+erDiagram
+  users ||--o| dietitian_profiles : "is"
+  users ||--o| staff : "is"
+  users ||--o| clients : "may login as"
+  dietitian_profiles ||--o{ staff : employs
+  staff ||--|| staff_permissions : has
+  dietitian_profiles ||--o{ clients : coaches
+  staff ||--o{ clients : assigned_to
+  dietitian_profiles ||--o{ subscription_plans : owns
+  clients ||--o{ client_subscriptions : has
+  subscription_plans ||--o{ client_subscriptions : used_by
+
+  dietitian_profiles ||--o{ foods : owns
+  dietitian_profiles ||--o{ recipes : owns
+  recipes ||--o{ recipe_ingredients : contains
+  foods ||--o{ recipe_ingredients : used_in
+  clients ||--o{ diet_plans : assigned
+  diet_plans ||--o{ meals : has
+  meals ||--o{ meal_items : has
+  foods ||--o{ meal_items : "optional"
+  recipes ||--o{ meal_items : "optional"
+
+  dietitian_profiles ||--o{ exercises : owns
+  clients ||--o{ exercise_plans : assigned
+  exercise_plans ||--o{ exercise_plan_items : has
+  exercises ||--o{ exercise_plan_items : used_in
+
+  clients ||--o{ progress_logs : logs
+  clients ||--o{ before_after_photos : uploads
+
+  users {
+    uuid id PK
+    varchar email UK
+    varchar password_hash
+    enum role
+    boolean is_active
+  }
+
+  foods {
+    uuid id PK
+    uuid dietitian_id FK
+    varchar name
+    numeric calories
+    numeric protein_g
+    numeric carbs_g
+    numeric fat_g
+  }
+
+  meal_items {
+    uuid id PK
+    uuid meal_id FK
+    enum item_type
+    uuid food_id FK
+    uuid recipe_id FK
+    numeric quantity
+    numeric calories
+  }
