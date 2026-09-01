@@ -1,4 +1,5 @@
 import React from 'react';
+import { BookingProvider } from './context/BookingContext';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import { KeyServicesStrip, WhyChooseMe } from './components/KeyServices';
@@ -9,10 +10,11 @@ import Programs from './components/Programs';
 import Contact from './components/Contact';
 import FAQ from './components/FAQ';
 import { FinalCTA, Footer, WhatsAppFloat } from './components/FooterSection';
+import BookingFlow from './components/BookingFlow';
 
 function App() {
   return (
-    <>
+    <BookingProvider>
       <Header />
       <Hero />
       <KeyServicesStrip />
@@ -26,7 +28,8 @@ function App() {
       <FinalCTA />
       <Footer />
       <WhatsAppFloat />
-    </>
+      <BookingFlow />
+    </BookingProvider>
   );
 }
 

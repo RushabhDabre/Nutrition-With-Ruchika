@@ -4,8 +4,10 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import EventIcon from '@mui/icons-material/Event';
 import { colors, gradientBrand } from '../theme';
 import { hero, whatsappLink } from '../data/siteData';
+import { useBooking } from '../context/BookingContext';
 
 export default function Hero() {
+  const { openBooking } = useBooking();
   return (
     <Box id="home" sx={{ pt: { xs: 18, md: 20 }, pb: 11, background: 'linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)' }}>
       <Container maxWidth="lg">
@@ -42,7 +44,7 @@ export default function Hero() {
 
             <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mb: 5 }}>
               <Button
-                href="#contact"
+                onClick={openBooking}
                 variant="contained"
                 size="large"
                 startIcon={<EventIcon />}

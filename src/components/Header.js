@@ -7,6 +7,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { colors, gradientBrand } from '../theme';
 import { whatsappLink } from '../data/siteData';
+import { useBooking } from '../context/BookingContext';
 
 const navItems = [
   { label: 'About', href: '#about' },
@@ -19,6 +20,7 @@ const navItems = [
 
 export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { openBooking } = useBooking();
 
   return (
     <AppBar
@@ -74,7 +76,7 @@ export default function Header() {
           </Box>
 
           <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5, alignItems: 'center' }}>
-            <Button href="#contact" variant="outlined" sx={{ borderWidth: 2, '&:hover': { borderWidth: 2 } }}>
+            <Button onClick={openBooking} variant="outlined" sx={{ borderWidth: 2, '&:hover': { borderWidth: 2 } }}>
               Book Consultation
             </Button>
             <Button
@@ -103,7 +105,7 @@ export default function Header() {
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
-            <ListItemButton component="a" href="#contact" sx={{ mt: 1 }}>
+            <ListItemButton onClick={openBooking} sx={{ mt: 1 }}>
               <ListItemText primary="Book Consultation" primaryTypographyProps={{ fontWeight: 700, color: colors.primary }} />
             </ListItemButton>
             <ListItemButton component="a" href={whatsappLink} target="_blank" rel="noreferrer">

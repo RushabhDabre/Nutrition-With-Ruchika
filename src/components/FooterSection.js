@@ -6,8 +6,10 @@ import EmailIcon from '@mui/icons-material/Email';
 import EventIcon from '@mui/icons-material/Event';
 import { colors, gradientBrand } from '../theme';
 import { whatsappLink, contact } from '../data/siteData';
+import { useBooking } from '../context/BookingContext';
 
 export function FinalCTA() {
+  const { openBooking } = useBooking();
   return (
     <Box sx={{ background: gradientBrand, py: 9, textAlign: 'center', color: colors.white }}>
       <Container maxWidth="md">
@@ -19,7 +21,7 @@ export function FinalCTA() {
         </Typography>
         <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
           <Button
-            href="#contact" variant="contained" size="large" startIcon={<EventIcon />}
+            onClick={openBooking} variant="contained" size="large" startIcon={<EventIcon />}
             sx={{ bgcolor: colors.white, color: colors.primary, py: 1.6, px: 4, '&:hover': { bgcolor: '#f1f1f1' } }}
           >
             Book Consultation
