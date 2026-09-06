@@ -7,13 +7,14 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import EmailIcon from '@mui/icons-material/Email';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { colors, gradientBrand, gradientPrimary } from '../theme';
-import { contact, whatsappLink, concernOptions } from '../data/siteData';
+import { concernOptions } from '../data/siteData';
+import { useSiteContent } from '../context/SiteContentContext';
 import SectionTitle from './SectionTitle';
 
 const initialForm = { name: '', phone: '', email: '', concern: '', message: '' };
 
 function ContactCard({ icon, iconBg, title, subtitle, href }) {
-  const content = (
+  return (
     <Paper
       elevation={0}
       sx={{
@@ -41,10 +42,12 @@ function ContactCard({ icon, iconBg, title, subtitle, href }) {
       </Box>
     </Paper>
   );
-  return content;
 }
 
 export default function Contact() {
+  const { contact } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+
   const [form, setForm] = useState(initialForm);
   const [submitted, setSubmitted] = useState(false);
 

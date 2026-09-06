@@ -7,33 +7,65 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import { colors, gradientBrand } from '../theme';
-import { apiBaseUrl, consultationFee, dietTypeOptions, timeSlotOptions } from '../data/siteData';
+import { apiBaseUrl, dietTypeOptions } from '../data/siteData';
 import { loadRazorpayScript } from '../utils/loadRazorpay';
 import { useBooking } from '../context/BookingContext';
+import { useSiteContent } from '../context/SiteContentContext';
+import DateTabPicker from './DateTabPicker';
 
 const steps = ['Your Details', 'Payment', 'Confirmed'];
 
 const initialForm = {
   name: '', age: '', gender: '', weightKg: '', heightCm: '', goal: '',
-  phone: '', email: '', city: '', dietType: '', medication: '', preferredSlot: '',
+  phone: '', email: '', city: '', dietType: '', medication: '',
+  bookingDate: '', slotStartTime: '',
 };
+
+function formatSlotLabel(time) {
+  const hour = parseInt(time.split(':')[0], 10);
+  const fmt = (h) => {
+    const period = h >= 12 ? 'PM' : 'AM';
+    const displayHour = h % 12 === 0 ? 12 : h % 12;
+    return `${displayHour}:00 ${period}`;
+  };
+  return `${fmt(hour)} - ${fmt(hour + 1)}`;
+}
+
+function formatBookingDateTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return '';
+  const date = new Date(`${dateStr}T00:00:00`);
+  const dateLabel = date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return `${dateLabel} • ${formatSlotLabel(timeStr)}`;
+}
 
 export default function BookingFlow() {
   const { isOpen, closeBooking } = useBooking();
+  const content = useSiteContent();
+  const consultationFee = content.consultationFeeInr || 99;
+
   const [activeStep, setActiveStep] = useState(0);
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
   const [confirmedBooking, setConfirmedBooking] = useState(null);
+  const [slotPickerKey, setSlotPickerKey] = useState(0);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[e.target.name]) setErrors({ ...errors, [e.target.name]: undefined });
   };
 
+  const handleDateTimeChange = ({ date, time }) => {
+    setForm((prev) => ({ ...prev, bookingDate: date, slotStartTime: time }));
+    if (errors.bookingDate || errors.slotStartTime) {
+      setErrors((prev) => ({ ...prev, bookingDate: undefined, slotStartTime: undefined }));
+    }
+  };
+
   const validateStep1 = () => {
-    const required = ['name', 'age', 'gender', 'weightKg', 'heightCm', 'goal', 'phone', 'email', 'city', 'dietType', 'preferredSlot'];
+    const required = ['name', 'age', 'gender', 'weightKg', 'heightCm', 'goal', 'phone', 'email', 'city', 'dietType', 'bookingDate', 'slotStartTime'];
     const newErrors = {};
     required.forEach((f) => {
       if (!form[f] || String(form[f]).trim() === '') newErrors[f] = 'Required';
@@ -65,6 +97,15 @@ export default function BookingFlow() {
       const orderData = await orderRes.json();
 
       if (!orderRes.ok) {
+        // A 409 here means someone else grabbed the slot between step 1
+        // and now - bounce the user back to re-pick instead of letting
+        // them pay for a slot that's no longer theirs.
+        if (orderRes.status === 409) {
+          setActiveStep(0);
+          setErrors((prev) => ({ ...prev, slotStartTime: orderData.error }));
+          setForm((prev) => ({ ...prev, slotStartTime: '' }));
+          setSlotPickerKey((k) => k + 1); // remount picker -> refetch fresh availability
+        }
         throw new Error(orderData.error || 'Could not start payment. Please try again.');
       }
 
@@ -127,6 +168,7 @@ export default function BookingFlow() {
       setErrors({});
       setApiError('');
       setConfirmedBooking(null);
+      setSlotPickerKey((k) => k + 1); // fresh picker next time it opens
     }, 300);
   };
 
@@ -173,10 +215,21 @@ export default function BookingFlow() {
                 label="Any Medication (optional)" name="medication" value={form.medication} onChange={handleChange}
                 placeholder="List any medication you're currently on" fullWidth sx={{ gridColumn: '1 / -1' }}
               />
-              <TextField select label="Preferred Time Slot" name="preferredSlot" value={form.preferredSlot} onChange={handleChange} error={!!errors.preferredSlot} helperText={errors.preferredSlot} fullWidth sx={{ gridColumn: '1 / -1' }}>
-                {timeSlotOptions.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-              </TextField>
             </Box>
+
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 600, mb: 1.25 }}>Pick a date & time slot (1 hour)</Typography>
+              <DateTabPicker
+                key={slotPickerKey}
+                value={{ date: form.bookingDate, time: form.slotStartTime }}
+                onChange={handleDateTimeChange}
+                days={15}
+              />
+              {errors.slotStartTime && (
+                <Typography sx={{ color: '#d32f2f', fontSize: '0.75rem', mt: 0.75 }}>{errors.slotStartTime}</Typography>
+              )}
+            </Box>
+
             <Button
               fullWidth size="large" variant="contained" onClick={handleContinueToPayment}
               sx={{ background: gradientBrand, py: 1.6, mt: 1, boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
@@ -192,7 +245,7 @@ export default function BookingFlow() {
               <Typography sx={{ fontWeight: 700, mb: 2 }}>Booking Summary</Typography>
               <SummaryRow label="Name" value={form.name} />
               <SummaryRow label="Goal" value={form.goal} />
-              <SummaryRow label="Preferred Slot" value={form.preferredSlot} />
+              <SummaryRow label="Appointment" value={formatBookingDateTime(form.bookingDate, form.slotStartTime)} />
               <SummaryRow label="Diet Type" value={form.dietType} />
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -225,7 +278,7 @@ export default function BookingFlow() {
             <Box sx={{ background: colors.bgLight, border: `2px solid ${colors.primary}`, borderRadius: '12px', p: 3, mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 1 }}>
                 <EventAvailableIcon sx={{ color: colors.primary }} />
-                <Typography sx={{ fontWeight: 700 }}>{form.preferredSlot}</Typography>
+                <Typography sx={{ fontWeight: 700 }}>{formatBookingDateTime(form.bookingDate, form.slotStartTime)}</Typography>
               </Box>
               <Typography
                 component="a" href={confirmedBooking.meetingLink} target="_blank" rel="noreferrer"

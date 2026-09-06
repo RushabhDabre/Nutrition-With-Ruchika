@@ -5,11 +5,14 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import EmailIcon from '@mui/icons-material/Email';
 import EventIcon from '@mui/icons-material/Event';
 import { colors, gradientBrand } from '../theme';
-import { whatsappLink, contact } from '../data/siteData';
 import { useBooking } from '../context/BookingContext';
+import { useSiteContent } from '../context/SiteContentContext';
 
 export function FinalCTA() {
   const { openBooking } = useBooking();
+  const { contact } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+
   return (
     <Box sx={{ background: gradientBrand, py: 9, textAlign: 'center', color: colors.white }}>
       <Container maxWidth="md">
@@ -44,6 +47,9 @@ const footerLinkSx = {
 };
 
 export function Footer() {
+  const { contact } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+
   return (
     <Box component="footer" sx={{ bgcolor: '#0f172a', color: '#cbd5e1', py: 7.5 }}>
       <Container maxWidth="lg">
@@ -115,7 +121,6 @@ export function Footer() {
             Nutrition with Ruchika | Nutritionist & Dietitian © {new Date().getFullYear()}
           </Typography>
           <Box>
-            {/* TODO: point these at real pages once written */}
             <Box component="a" href="/privacy-policy" sx={{ color: '#94a3b8', textDecoration: 'none', ml: 2, '&:hover': { color: colors.primary } }}>Privacy Policy</Box>
             <Box component="a" href="/disclaimer" sx={{ color: '#94a3b8', textDecoration: 'none', ml: 2, '&:hover': { color: colors.primary } }}>Disclaimer</Box>
             <Box component="a" href="/terms-and-conditions" sx={{ color: '#94a3b8', textDecoration: 'none', ml: 2, '&:hover': { color: colors.primary } }}>Terms & Conditions</Box>
@@ -127,6 +132,9 @@ export function Footer() {
 }
 
 export function WhatsAppFloat() {
+  const { contact } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+
   return (
     <Fab
       href={whatsappLink}

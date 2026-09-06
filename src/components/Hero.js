@@ -3,11 +3,20 @@ import { Box, Container, Typography, Button, Chip, Stack, Paper } from '@mui/mat
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import EventIcon from '@mui/icons-material/Event';
 import { colors, gradientBrand } from '../theme';
-import { hero, whatsappLink } from '../data/siteData';
 import { useBooking } from '../context/BookingContext';
+import { useSiteContent } from '../context/SiteContentContext';
+
+const trustStats = [
+  { number: '500+', label: 'Clients Guided' },
+  { number: '8+', label: 'Years Experience' },
+  { number: '4.9★', label: 'Client Rating' },
+];
 
 export default function Hero() {
   const { openBooking } = useBooking();
+  const { contact, hero } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+
   return (
     <Box id="home" sx={{ pt: { xs: 18, md: 20 }, pb: 11, background: 'linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)' }}>
       <Container maxWidth="lg">
@@ -21,7 +30,7 @@ export default function Hero() {
         >
           <Box>
             <Chip
-              label={hero.eyebrow}
+              label="🌿 Certified Nutritionist & Dietitian"
               sx={{ bgcolor: 'rgba(99,102,241,0.1)', color: colors.primary, fontWeight: 700, mb: 2.5, px: 1 }}
             />
             <Typography variant="h1" sx={{ fontSize: { xs: '2.2rem', md: '3.1rem' }, lineHeight: 1.15, mb: 2.5 }}>
@@ -66,7 +75,7 @@ export default function Hero() {
             </Stack>
 
             <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
-              {hero.trust.map((t) => (
+              {trustStats.map((t) => (
                 <Box key={t.label}>
                   <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: colors.primary }}>{t.number}</Typography>
                   <Typography sx={{ fontSize: '0.8rem', color: colors.textLight }}>{t.label}</Typography>
@@ -88,11 +97,7 @@ export default function Hero() {
                 overflow: 'hidden',
               }}
             >
-              {hero.photo ? (
-                <Box component="img" src={hero.photo} alt="Ruchika" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <Typography sx={{ fontSize: '5rem' }}>👩‍⚕️</Typography>
-              )}
+              <Typography sx={{ fontSize: '5rem' }}>👩‍⚕️</Typography>
             </Box>
             <Paper
               elevation={0}

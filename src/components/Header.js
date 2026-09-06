@@ -6,7 +6,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { colors, gradientBrand } from '../theme';
-import { whatsappLink } from '../data/siteData';
+import { useSiteContent } from '../context/SiteContentContext';
 import { useBooking } from '../context/BookingContext';
 
 const navItems = [
@@ -21,6 +21,8 @@ const navItems = [
 export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { openBooking } = useBooking();
+  const { contact } = useSiteContent();
+  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
 
   return (
     <AppBar

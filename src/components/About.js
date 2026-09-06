@@ -2,7 +2,8 @@ import React from 'react';
 import { Box, Container, Typography, Chip, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { colors } from '../theme';
-import { about } from '../data/siteData';
+import { aboutStatic } from '../data/siteData';
+import { useSiteContent } from '../context/SiteContentContext';
 
 function AboutBlock({ icon, title, children }) {
   return (
@@ -39,6 +40,8 @@ function CheckList({ items }) {
 }
 
 export default function About() {
+  const { about } = useSiteContent();
+
   return (
     <Box component="section" id="about" sx={{ py: 11, bgcolor: colors.bgLight }}>
       <Container maxWidth="lg">
@@ -51,11 +54,7 @@ export default function About() {
               boxShadow: '0 25px 55px rgba(99,102,241,0.2)', overflow: 'hidden',
             }}
           >
-            {about.photo ? (
-              <Box component="img" src={about.photo} alt="Ruchika" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <Typography sx={{ fontSize: '4.5rem' }}>👩‍⚕️</Typography>
-            )}
+            <Typography sx={{ fontSize: '4.5rem' }}>👩‍⚕️</Typography>
           </Box>
 
           <Box>
@@ -64,7 +63,7 @@ export default function About() {
             <Typography sx={{ color: colors.textLight, mb: 2.25, lineHeight: 1.85 }}>{about.intro}</Typography>
 
             <AboutBlock icon="🎓" title="Education & Certifications">
-              <CheckList items={about.education} />
+              <CheckList items={aboutStatic.education} />
             </AboutBlock>
 
             <AboutBlock icon="📖" title="Background">
@@ -72,7 +71,7 @@ export default function About() {
             </AboutBlock>
 
             <AboutBlock icon="💡" title="My Approach">
-              <CheckList items={about.approach} />
+              <CheckList items={aboutStatic.approach} />
             </AboutBlock>
           </Box>
         </Box>
