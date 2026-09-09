@@ -54,7 +54,11 @@ export default function About() {
               boxShadow: '0 25px 55px rgba(99,102,241,0.2)', overflow: 'hidden',
             }}
           >
-            <Typography sx={{ fontSize: '4.5rem' }}>👩‍⚕️</Typography>
+            {about.photoUrl ? (
+              <Box component="img" src={about.photoUrl} alt="Ruchika" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <Typography sx={{ fontSize: '4.5rem' }}>👩‍⚕️</Typography>
+            )}
           </Box>
 
           <Box>

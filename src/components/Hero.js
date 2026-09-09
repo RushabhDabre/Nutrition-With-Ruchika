@@ -12,13 +12,13 @@ const trustStats = [
   { number: '4.9★', label: 'Client Rating' },
 ];
 
-export default function Hero() {
+export default function Hero({ topOffset = 96 }) {
   const { openBooking } = useBooking();
   const { contact, hero } = useSiteContent();
   const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
 
   return (
-    <Box id="home" sx={{ pt: { xs: 18, md: 20 }, pb: 11, background: 'linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)' }}>
+    <Box id="home" sx={{ pt: `${topOffset + 56}px`, pb: 11, background: 'linear-gradient(180deg, #f5f6ff 0%, #ffffff 100%)' }}>
       <Container maxWidth="lg">
         <Box
           sx={{
@@ -97,7 +97,11 @@ export default function Hero() {
                 overflow: 'hidden',
               }}
             >
-              <Typography sx={{ fontSize: '5rem' }}>👩‍⚕️</Typography>
+              {hero.photoUrl ? (
+                <Box component="img" src={hero.photoUrl} alt="Ruchika" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <Typography sx={{ fontSize: '5rem' }}>👩‍⚕️</Typography>
+              )}
             </Box>
             <Paper
               elevation={0}

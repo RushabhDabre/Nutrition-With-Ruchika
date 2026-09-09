@@ -17,10 +17,12 @@ const FALLBACK_CONTENT = {
     headline: 'Eat Better. Feel Better.',
     headlineHighlight: 'Live Better.',
     tagline: 'Personalized, science-backed nutrition plans that fit your lifestyle — not the other way around.',
+    photoUrl: '',
   },
   about: {
     intro: "I'm a certified nutritionist and dietitian passionate about helping people build a healthy relationship with food.",
     background: 'Over 8 years of clinical and private practice experience, working with 500+ clients.',
+    photoUrl: '',
   },
   consultationFeeInr: 99,
 };

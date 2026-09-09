@@ -6,13 +6,14 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { colors, gradientBrand } from '../theme';
-import { useSiteContent } from '../context/SiteContentContext';
 import { useBooking } from '../context/BookingContext';
+import { useSiteContent } from '../context/SiteContentContext';
 
 const navItems = [
   { label: 'About', href: '#about' },
   { label: 'Services', href: '#services' },
-  { label: 'Programs', href: '#programs' },
+  { label: 'Health Tools', href: '#health-tools' },
+  // { label: 'Programs', href: '#programs' },
   { label: 'Testimonials', href: '#testimonials' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Contact', href: '#contact' },
@@ -26,7 +27,7 @@ export default function Header() {
 
   return (
     <AppBar
-      position="fixed"
+      position="static"
       elevation={0}
       sx={{
         bgcolor: 'rgba(255,255,255,0.95)',

@@ -1,16 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Paper, TextField, Typography, Button, Alert, CircularProgress } from '@mui/material';
+import { Box, Paper, TextField, Typography, Button, Alert, CircularProgress, Avatar } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { colors, gradientBrand } from '../theme';
 import { apiBaseUrl } from '../data/siteData';
 import { adminFetch } from '../utils/adminAuth';
+import { uploadMediaFile } from '../supabaseClient';
 
 const FIELD_SX = { mb: 2 };
+
+function PhotoUploadRow({ label, photoUrl, uploading, onUpload }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5 }}>
+      <Avatar src={photoUrl || undefined} sx={{ width: 64, height: 64, bgcolor: colors.bgLight, fontSize: '1.8rem' }}>
+        {!photoUrl && '👩‍⚕️'}
+      </Avatar>
+      <Box>
+        <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, mb: 0.5 }}>{label}</Typography>
+        <Button component="label" size="small" variant="outlined" startIcon={<CloudUploadIcon />} disabled={uploading}>
+          {uploading ? 'Uploading...' : photoUrl ? 'Replace Photo' : 'Upload Photo'}
+          <input type="file" hidden accept="image/*" onChange={onUpload} />
+        </Button>
+      </Box>
+    </Box>
+  );
+}
 
 export default function SiteContentEditor() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingAbout, setUploadingAbout] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -30,6 +51,21 @@ export default function SiteContentEditor() {
   const updateTopLevel = (field, value) => {
     setContent((prev) => ({ ...prev, [field]: value }));
     setSaved(false);
+  };
+
+  const handlePhotoUpload = async (section, setUploading, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const url = await uploadMediaFile(file, section);
+      updateField(section, 'photoUrl', url);
+    } catch (err) {
+      setError('Upload failed: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -74,6 +110,12 @@ export default function SiteContentEditor() {
 
       <Paper elevation={0} sx={{ p: 3, mb: 3, border: `2px solid ${colors.border}`, borderRadius: '14px' }}>
         <Typography sx={{ fontWeight: 700, mb: 2 }}>Homepage Hero</Typography>
+        <PhotoUploadRow
+          label="Hero Photo (right side of homepage banner)"
+          photoUrl={content.hero.photoUrl}
+          uploading={uploadingHero}
+          onUpload={(e) => handlePhotoUpload('hero', setUploadingHero, e)}
+        />
         <TextField label="Headline" fullWidth sx={FIELD_SX}
           value={content.hero.headline} onChange={(e) => updateField('hero', 'headline', e.target.value)} />
         <TextField label="Headline Highlight (gradient part)" fullWidth sx={FIELD_SX}
@@ -84,6 +126,12 @@ export default function SiteContentEditor() {
 
       <Paper elevation={0} sx={{ p: 3, mb: 3, border: `2px solid ${colors.border}`, borderRadius: '14px' }}>
         <Typography sx={{ fontWeight: 700, mb: 2 }}>About Me</Typography>
+        <PhotoUploadRow
+          label="About Section Photo"
+          photoUrl={content.about.photoUrl}
+          uploading={uploadingAbout}
+          onUpload={(e) => handlePhotoUpload('about', setUploadingAbout, e)}
+        />
         <TextField label="Introduction" fullWidth multiline rows={2} sx={FIELD_SX}
           value={content.about.intro} onChange={(e) => updateField('about', 'intro', e.target.value)} />
         <TextField label="Background" fullWidth multiline rows={2}

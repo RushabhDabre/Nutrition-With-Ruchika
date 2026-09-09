@@ -84,7 +84,7 @@ export function Footer() {
             <Typography sx={{ color: colors.white, fontWeight: 700, mb: 2, fontSize: '0.95rem' }}>Quick Links</Typography>
             <Box component="a" href="#about" sx={footerLinkSx}>About Me</Box>
             <Box component="a" href="#services" sx={footerLinkSx}>Services</Box>
-            <Box component="a" href="#programs" sx={footerLinkSx}>Programs</Box>
+            {/* <Box component="a" href="#programs" sx={footerLinkSx}>Programs</Box> */}
             <Box component="a" href="#testimonials" sx={footerLinkSx}>Testimonials</Box>
             <Box component="a" href="#faq" sx={footerLinkSx}>FAQ</Box>
           </Box>
