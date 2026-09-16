@@ -44,6 +44,8 @@ export default function BannersManager() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
+  const isModal = form.displayType === "MODAL";
+
   const load = () => {
     setLoading(true);
     adminFetch("/api/admin/banners")
@@ -74,6 +76,10 @@ export default function BannersManager() {
 
   const handleSave = async () => {
     setError("");
+    if (isModal && !form.imageUrl) {
+      setError("Please upload an image for the popup banner.");
+      return;
+    }
     try {
       const method = form.id ? "PUT" : "POST";
       const path = form.id
@@ -128,9 +134,10 @@ export default function BannersManager() {
       )}
 
       <Alert severity="info" sx={{ mb: 3, fontSize: "0.85rem" }}>
-        This shows as a slim announcement strip below the header (like "🎉 New
-        Year Offer — 20% off!"), not a full-size image — keep the title short
-        and punchy.
+        <strong>Top Strip</strong>: a slim text announcement below the header.{" "}
+        <strong>Popup Modal</strong>: shows your uploaded image as-is (like a
+        poster/flyer) centered on screen when the page loads — no text or button
+        added on top, just the image and a close button.
       </Alert>
 
       {!formOpen && (
@@ -159,25 +166,6 @@ export default function BannersManager() {
           </Typography>
 
           <TextField
-            label="Headline (shown to visitors)"
-            size="small"
-            fullWidth
-            sx={{ mb: 1.5 }}
-            placeholder="e.g. New Year Offer — 20% off Transformation Program!"
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
-          />
-          <TextField
-            label="Subtitle (optional, hidden on mobile)"
-            size="small"
-            fullWidth
-            sx={{ mb: 1.5 }}
-            placeholder="e.g. Valid till 31st January"
-            value={form.subtitle}
-            onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-          />
-
-          <TextField
             select
             label="Show as"
             size="small"
@@ -186,44 +174,83 @@ export default function BannersManager() {
             value={form.displayType}
             onChange={(e) => setForm({ ...form, displayType: e.target.value })}
             helperText={
-              form.displayType === "MODAL"
-                ? "Centered popup - shows once per visit, reopenable via a small floating button"
+              isModal
+                ? "Centered popup showing your uploaded image, reopenable via a small floating button"
                 : "Slim announcement bar below the header"
             }
           >
             <MenuItem value="STRIP">Top Strip</MenuItem>
-            <MenuItem value="MODAL">Popup Modal</MenuItem>
+            <MenuItem value="MODAL">Popup Modal (image only)</MenuItem>
           </TextField>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-              gap: 1.5,
-              mb: 1.5,
-            }}
-          >
-            <TextField
-              label="Button Text (optional)"
-              size="small"
-              placeholder="e.g. Book Now"
-              value={form.buttonText}
-              onChange={(e) => setForm({ ...form, buttonText: e.target.value })}
-            />
-            <TextField
-              label="Link URL (optional)"
-              size="small"
-              placeholder="Where the button goes"
-              value={form.linkUrl}
-              onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
-            />
-          </Box>
+          <TextField
+            label={
+              isModal
+                ? "Internal Name (not shown to visitors)"
+                : "Headline (shown to visitors)"
+            }
+            size="small"
+            fullWidth
+            sx={{ mb: 1.5 }}
+            placeholder={
+              isModal
+                ? "e.g. Diwali Offer Poster"
+                : "e.g. New Year Offer — 20% off Transformation Program!"
+            }
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+          />
+
+          {!isModal && (
+            <>
+              <TextField
+                label="Subtitle (optional, hidden on mobile)"
+                size="small"
+                fullWidth
+                sx={{ mb: 1.5 }}
+                placeholder="e.g. Valid till 31st January"
+                value={form.subtitle}
+                onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+              />
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 1.5,
+                  mb: 1.5,
+                }}
+              >
+                <TextField
+                  label="Button Text (optional)"
+                  size="small"
+                  placeholder="e.g. Book Now"
+                  value={form.buttonText}
+                  onChange={(e) =>
+                    setForm({ ...form, buttonText: e.target.value })
+                  }
+                />
+                <TextField
+                  label="Link URL (optional)"
+                  size="small"
+                  placeholder="Where the button goes"
+                  value={form.linkUrl}
+                  onChange={(e) =>
+                    setForm({ ...form, linkUrl: e.target.value })
+                  }
+                />
+              </Box>
+            </>
+          )}
 
           <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}>
             <Avatar
               variant="rounded"
               src={form.imageUrl || undefined}
-              sx={{ width: 40, height: 40, bgcolor: colors.bgLight }}
+              sx={
+                isModal
+                  ? { width: 64, height: 80, bgcolor: colors.bgLight }
+                  : { width: 40, height: 40, bgcolor: colors.bgLight }
+              }
             />
             <Box sx={{ flex: 1 }}>
               <Button
@@ -233,7 +260,11 @@ export default function BannersManager() {
                 startIcon={<CloudUploadIcon />}
                 disabled={uploading}
               >
-                {uploading ? "Uploading..." : "Upload Small Icon (optional)"}
+                {uploading
+                  ? "Uploading..."
+                  : isModal
+                    ? "Upload Banner Image"
+                    : "Upload Small Icon (optional)"}
                 <input
                   type="file"
                   hidden
@@ -244,8 +275,9 @@ export default function BannersManager() {
               <Typography
                 sx={{ fontSize: "0.72rem", color: colors.textLight, mt: 0.5 }}
               >
-                Optional — a small badge/icon, not a full graphic. Looks fine
-                without one too.
+                {isModal
+                  ? "The full poster/graphic to show, exactly as uploaded — no text is added on top of it."
+                  : "Optional — a small badge/icon, not a full graphic. Looks fine without one too."}
               </Typography>
             </Box>
           </Box>
@@ -373,7 +405,7 @@ export default function BannersManager() {
                 <Typography
                   sx={{ fontSize: "0.75rem", color: colors.textLight }}
                 >
-                  {item.displayType === "MODAL" ? "Popup" : "Strip"} ·{" "}
+                  {item.displayType === "MODAL" ? "Popup (image)" : "Strip"} ·{" "}
                   {item.startDate || "always"} → {item.endDate || "no end"}
                 </Typography>
               </Box>
