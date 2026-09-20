@@ -88,12 +88,7 @@ export default function OfferModal() {
             m: 2,
             bgcolor: "transparent",
             boxShadow: "none",
-            width: {
-              xs: "calc(100vw - 32px)",
-              sm: "520px",
-              md: "700px",
-              // lg: "900px",
-            },
+            width: "auto",
             maxWidth: "95vw",
           },
         }}
