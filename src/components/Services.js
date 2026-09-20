@@ -22,7 +22,7 @@ export default function Services() {
   }, []);
 
   return (
-    <Box component="section" id="services" sx={{ py: 11 }}>
+    <Box component="section" id="services" sx={{ py: 5 }}>
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="Services"

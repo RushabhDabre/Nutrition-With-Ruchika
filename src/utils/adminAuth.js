@@ -1,48 +1,105 @@
-import { apiBaseUrl } from '../data/siteData';
+import { apiBaseUrl } from "../data/siteData";
 
-const STORAGE_KEY = 'admin_credentials';
+let csrfToken = null;
 
-export function getStoredCredentials() {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
-  return raw ? JSON.parse(raw) : null;
-}
-
-export function storeCredentials(username, password) {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ username, password }));
-}
-
-export function clearCredentials() {
-  sessionStorage.removeItem(STORAGE_KEY);
-}
-
-function authHeader(creds) {
-  return { Authorization: `Basic ${btoa(`${creds.username}:${creds.password}`)}` };
-}
-
-/** Verifies credentials by hitting a real authenticated endpoint. */
-export async function verifyCredentials(username, password) {
-  const res = await fetch(`${apiBaseUrl}/api/admin/bookings`, {
-    headers: authHeader({ username, password }),
+async function getCsrfToken() {
+  const res = await fetch(`${apiBaseUrl}/api/auth/csrf`, {
+    credentials: "include",
   });
-  return res.ok;
+
+  if (!res.ok) {
+    throw new Error("Could not initialize security token");
+  }
+
+  const data = await res.json();
+  csrfToken = data.token;
+  return csrfToken;
 }
 
-/** fetch() wrapper that automatically attaches stored admin credentials. */
-export async function adminFetch(path, options = {}) {
-  const creds = getStoredCredentials();
-  if (!creds) throw new Error('Not logged in');
+export async function login(username, password) {
+  const token = await getCsrfToken();
 
-  const res = await fetch(`${apiBaseUrl}${path}`, {
-    ...options,
+  const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
+    method: "POST",
+
+    credentials: "include",
+
     headers: {
-      ...(options.headers || {}),
-      ...authHeader(creds),
+      "Content-Type": "application/json",
+      "X-XSRF-TOKEN": token,
+    },
+
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  if (!res.ok) {
+    return false;
+  }
+
+  // Login clears the previous CSRF token,
+  // so get a fresh one for authenticated requests.
+  csrfToken = null;
+  await getCsrfToken();
+
+  return true;
+}
+
+export async function getCurrentAdmin() {
+  const res = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  return res.json();
+}
+
+export async function logout() {
+  const token = await getCsrfToken();
+
+  await fetch(`${apiBaseUrl}/api/auth/logout`, {
+    method: "POST",
+
+    credentials: "include",
+
+    headers: {
+      "X-XSRF-TOKEN": token,
     },
   });
 
-  if (res.status === 401) {
-    clearCredentials();
-    throw new Error('Session expired - please log in again');
+  csrfToken = null;
+}
+
+export async function adminFetch(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+
+  const headers = {
+    ...(options.headers || {}),
+  };
+
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const token = csrfToken || (await getCsrfToken());
+
+    headers["X-XSRF-TOKEN"] = token;
   }
+
+  const res = await fetch(`${apiBaseUrl}${path}`, {
+    ...options,
+
+    credentials: "include",
+
+    headers,
+  });
+
+  if (res.status === 401) {
+    window.location.href = "/admin";
+    throw new Error("Session expired");
+  }
+
   return res;
 }

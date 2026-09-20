@@ -15,7 +15,7 @@ export function KeyServicesStrip() {
   }, []);
 
   return (
-    <Box component="section" sx={{ py: 11 }}>
+    <Box component="section" sx={{ py: 3 }}>
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="What I Help With"
@@ -73,7 +73,14 @@ export function WhyChooseMe() {
   }, []);
 
   return (
-    <Box component="section" sx={{ py: 11, bgcolor: colors.bgLight }}>
+    <Box
+      component="section"
+      sx={{
+        py: 5,
+        // bgcolor: colors.bgLight,
+        background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`,
+      }}
+    >
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="Why Me"

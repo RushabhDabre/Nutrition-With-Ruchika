@@ -17,7 +17,7 @@ import Contact from "./components/Contact";
 import FAQ from "./components/FAQ";
 import { FinalCTA, Footer, WhatsAppFloat } from "./components/FooterSection";
 import BookingFlow from "./components/BookingFlow";
-import OfferModal from './components/OfferModal';
+import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
 
 function MainSite() {
@@ -42,28 +42,49 @@ function MainSite() {
   return (
     <BookingProvider>
       <Box
-        ref={topBarRef}
-        sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1100 }}
+        sx={{
+          position: "relative",
+          minHeight: "100vh",
+          backgroundColor: "#ffffff",
+          backgroundImage: {
+            xs: 'url("/assets/images/HeroBgMobile.png")',
+            md: 'url("/assets/images/HeroBg.png")',
+          },
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center top",
+          backgroundSize: "100% auto",
+          backgroundAttachment: {
+            xs: "fixed",
+            md: "fixed",
+          },
+        }}
       >
-        <BannerStrip />
-        <Header />
+        <Box
+          ref={topBarRef}
+          sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1100 }}
+        >
+          <BannerStrip />
+          <Header />
+        </Box>
+        <Box sx={{ position: "relative", zIndex: 1 }}>
+          <Hero topOffset={topOffset} />
+          <KeyServicesStrip />
+          <WhyChooseMe />
+          <HowItWorks />
+          <Testimonials />
+          <About />
+          <Services />
+          <HealthTools />
+          {/* <Programs /> */}
+          <Contact />
+          <FAQ />
+          <FinalCTA />
+          <Footer />
+        </Box>
+        <WhatsAppFloat />
+        <BookingFlow />
+        <OfferModal />
       </Box>
-      <Hero topOffset={topOffset} />
-      <KeyServicesStrip />
-      <WhyChooseMe />
-      <HowItWorks />
-      <Testimonials />
-      <About />
-      <Services />
-      <HealthTools />
-      {/* <Programs /> */}
-      <Contact />
-      <FAQ />
-      <FinalCTA />
-      <Footer />
-      <WhatsAppFloat />
-      <BookingFlow />
-      <OfferModal />
     </BookingProvider>
   );
 }

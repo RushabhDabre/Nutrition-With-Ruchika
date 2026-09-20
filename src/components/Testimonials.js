@@ -72,7 +72,7 @@ export default function Testimonials() {
   if (items.length === 0) return null;
 
   return (
-    <Box component="section" id="testimonials" sx={{ py: 11 }}>
+    <Box component="section" id="testimonials" sx={{ py: 5 }}>
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="Client Stories"

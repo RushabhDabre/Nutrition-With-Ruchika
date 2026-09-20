@@ -26,7 +26,7 @@ const steps = [
 
 export default function HowItWorks() {
   return (
-    <Box component="section" sx={{ py: 11 }}>
+    <Box component="section" sx={{ py: 5 }}>
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="How It Works"

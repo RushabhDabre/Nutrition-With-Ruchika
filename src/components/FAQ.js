@@ -23,7 +23,7 @@ export default function FAQ() {
   }, []);
 
   return (
-    <Box component="section" id="faq" sx={{ py: 11, bgcolor: colors.bgLight }}>
+    <Box component="section" id="faq" sx={{ py: 5, bgcolor: colors.bgLight, background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`, }}>
       <Container maxWidth="md">
         <SectionTitle
           eyebrow="FAQ"
@@ -49,13 +49,13 @@ export default function FAQ() {
               >
                 <AccordionSummary
                   expandIcon={<AddIcon sx={{ color: colors.primary }} />}
-                  sx={{ px: 3, py: 0.5 }}
+                  sx={{ px: 5, py: 0.5 }}
                 >
                   <Typography sx={{ fontWeight: 700, fontSize: "0.98rem" }}>
                     {item.question}
                   </Typography>
                 </AccordionSummary>
-                <AccordionDetails sx={{ px: 3, pb: 2.5 }}>
+                <AccordionDetails sx={{ px: 5, pb: 2.5 }}>
                   <Typography
                     sx={{
                       color: colors.textLight,

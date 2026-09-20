@@ -43,7 +43,7 @@ export default function About() {
   const { about } = useSiteContent();
 
   return (
-    <Box component="section" id="about" sx={{ py: 11, bgcolor: colors.bgLight }}>
+    <Box component="section" id="about" sx={{ py: 5, bgcolor: colors.bgLight, background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`, }}>
       <Container maxWidth="lg">
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '0.9fr 1.1fr' }, gap: 7.5, alignItems: 'center' }}>
           <Box

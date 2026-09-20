@@ -62,7 +62,7 @@ export default function Contact() {
   };
 
   return (
-    <Box component="section" id="contact" sx={{ py: 11 }}>
+    <Box component="section" id="contact" sx={{ py: 5 }}>
       <Container maxWidth="lg">
         <SectionTitle
           eyebrow="Get In Touch"
