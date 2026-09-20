@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import { colors, gradientBrand } from "../theme";
+import { colors } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
 

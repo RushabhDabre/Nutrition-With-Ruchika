@@ -60,7 +60,6 @@ export default function SiteContentEditor() {
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingHero, setUploadingHero] = useState(false);
   const [uploadingAbout, setUploadingAbout] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
