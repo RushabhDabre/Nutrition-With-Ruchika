@@ -232,7 +232,7 @@ export default function Hero({ topOffset = 96 }) {
         overflow: "hidden",
         pt: `${topOffset + 46}px`,
         pb: 11,
-        background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`,
+        // background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%)`,
       }}
     >
       {/* <Box

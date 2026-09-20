@@ -23,7 +23,7 @@ export default function FAQ() {
   }, []);
 
   return (
-    <Box component="section" id="faq" sx={{ py: 5, bgcolor: colors.bgLight, background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`, }}>
+    <Box component="section" id="faq" sx={{ py: 5 }}>
       <Container maxWidth="md">
         <SectionTitle
           eyebrow="FAQ"

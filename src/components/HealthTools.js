@@ -196,7 +196,7 @@ export default function HealthTools() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Box component="section" id="health-tools" sx={{ py: 5, bgcolor: colors.bgLight, background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.6) 0%, rgba(255, 255, 255, 0.6) 100%)`, }}>
+    <Box component="section" id="health-tools" sx={{ py: 5 }}>
       <Container maxWidth="sm">
         <SectionTitle
           eyebrow="Free Tools"
