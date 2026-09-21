@@ -7,7 +7,7 @@ import {
   CardContent,
   Chip,
 } from "@mui/material";
-import { colors, gradientPrimary } from "../theme";
+import { colors, serifFont } from "../theme";
 import SectionTitle from "./SectionTitle";
 import { apiBaseUrl } from "../data/siteData";
 
@@ -22,17 +22,24 @@ export default function Services() {
   }, []);
 
   return (
-    <Box component="section" id="services" sx={{ py: 5 }}>
+    <Box
+      component="section"
+      id="services"
+      sx={{
+        py: { xs: 8, md: 12 },
+        bgcolor: "#ffffff",
+      }}
+    >
       <Container maxWidth="lg">
         <SectionTitle
-          eyebrow="Services"
+          eyebrow="Specializations"
           title="Areas I Specialize In"
-          subtitle="Tailored nutrition programs designed around your specific health goals"
+          subtitle="Tailored nutrition programs designed around your clinical and lifestyle needs"
         />
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: 3.5,
           }}
         >
@@ -42,69 +49,72 @@ export default function Services() {
             ?.map((s) => (
               <Card
                 key={s.id}
+                elevation={0}
                 sx={{
-                  p: 1,
+                  p: 1.5,
+                  borderRadius: 4,
+                  border: `1px solid ${colors.border}`,
+                  bgcolor: colors.white,
                   position: "relative",
                   overflow: "hidden",
-                  transition: "all 0.3s",
-                  "&::before": {
-                    content: '""',
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    height: 4,
-                    background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
-                    transform: "scaleX(0)",
-                    transformOrigin: "left",
-                    transition: "transform 0.3s",
-                  },
+                  transition: "all 0.3s ease",
                   "&:hover": {
                     borderColor: colors.primary,
                     transform: "translateY(-6px)",
-                    boxShadow: "0 18px 40px rgba(99,102,241,0.12)",
+                    boxShadow: "0 16px 36px rgba(121, 152, 91, 0.12)",
                   },
-                  "&:hover::before": { transform: "scaleX(1)" },
                 }}
               >
                 <CardContent>
                   <Box
                     sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: "12px",
-                      background: gradientPrimary,
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      bgcolor: "rgba(121, 152, 91, 0.12)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: colors.white,
-                      fontSize: "1.6rem",
-                      mb: 2.25,
+                      color: colors.primary,
+                      fontSize: "1.5rem",
+                      mb: 2,
                     }}
                   >
                     {s.icon}
                   </Box>
                   <Typography
-                    sx={{ fontSize: "1.2rem", fontWeight: 700, mb: 1.25 }}
+                    sx={{
+                      fontFamily: serifFont,
+                      fontSize: "1.25rem",
+                      fontWeight: 600,
+                      color: colors.textDark,
+                      mb: 1.25,
+                    }}
                   >
                     {s.title}
                   </Typography>
                   <Typography
-                    sx={{ color: colors.textLight, fontSize: "0.92rem", mb: 2 }}
+                    sx={{
+                      color: colors.textLight,
+                      fontSize: "0.9rem",
+                      lineHeight: 1.7,
+                      mb: 2.5,
+                    }}
                   >
                     {s.text}
                   </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {s.tags.split(",").map((tag) => (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8 }}>
+                    {s.tags?.split(",").map((tag) => (
                       <Chip
-                        key={tag}
-                        label={tag}
+                        key={tag.trim()}
+                        label={tag.trim()}
                         size="small"
                         sx={{
-                          bgcolor: "rgba(99,102,241,0.08)",
-                          color: colors.primary,
+                          bgcolor: "rgba(121, 152, 91, 0.08)",
+                          color: colors.primaryDark,
                           fontWeight: 600,
                           fontSize: "0.75rem",
+                          borderRadius: 50,
                         }}
                       />
                     ))}

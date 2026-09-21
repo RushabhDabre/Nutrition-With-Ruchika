@@ -46,23 +46,6 @@ function MainSite() {
           position: "relative",
           minHeight: "100vh",
           backgroundColor: "#ffffff",
-          backgroundImage: {
-            xs: `
-        linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)),
-        url("/assets/images/HeroBgMobile.png")
-      `,
-            md: `
-        linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-        url("/assets/images/HeroBg.png")
-      `,
-          },
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center top",
-          backgroundSize: "100% auto",
-          backgroundAttachment: {
-            xs: "fixed",
-            md: "fixed",
-          },
         }}
       >
         <Box

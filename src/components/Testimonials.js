@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -6,233 +6,212 @@ import {
   Card,
   CardContent,
   Avatar,
-  IconButton,
+  Rating,
 } from "@mui/material";
-import StarIcon from "@mui/icons-material/Star";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { colors, gradientBrand } from "../theme";
+import FormatQuoteIcon from "@mui/icons-material/FormatQuote";
+import { colors, serifFont } from "../theme";
 import { apiBaseUrl } from "../data/siteData";
-import SectionTitle from "./SectionTitle";
 
-const CARD_WIDTH = 300;
-const CARD_GAP = 20; // px, matches gap: 2.5 (theme spacing 8px * 2.5 = 20px)
-const AUTO_SCROLL_INTERVAL_MS = 3500;
+const defaultStories = [
+  {
+    id: "default-1",
+    clientName: "Sarah M.",
+    tag: "Lost 25 lbs",
+    textContent:
+      "Working with Ruchika changed my life. I lost 25 pounds, gained so much energy, and finally feel confident in my own skin without starving.",
+    avatar:
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+  },
+  {
+    id: "default-2",
+    clientName: "Michael T.",
+    tag: "Gained Energy & Health",
+    textContent:
+      "The personalized approach made all the difference. I no longer feel deprived and I love the way I feel every day! My lab reports improved dramatically.",
+    avatar:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+  },
+  {
+    id: "default-3",
+    clientName: "Jessica R.",
+    tag: "Maintained Results",
+    textContent:
+      "I've tried so many diets, but this is the first time I've been able to maintain results long-term. Truly life-changing guidance and habit building!",
+    avatar:
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
+    rating: 5,
+  },
+];
 
 export default function Testimonials() {
   const [items, setItems] = useState([]);
-  const [overflowing, setOverflowing] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const scrollRef = useRef(null);
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     fetch(`${apiBaseUrl}/api/testimonials`)
       .then((res) => res.json())
-      .then(setItems)
-      .catch(() => setItems([]));
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setItems(data.filter((item) => item.active !== false));
+        } else {
+          setItems(defaultStories);
+        }
+      })
+      .catch(() => setItems(defaultStories));
   }, []);
 
-  // Only auto-rotate if the cards actually don't all fit on screen at once -
-  // no point scrolling a row that already shows everything.
-  useEffect(() => {
-    const check = () => {
-      const el = scrollRef.current;
-      if (el) setOverflowing(el.scrollWidth > el.clientWidth + 4);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, [items]);
-
-  const scrollByAmount = useCallback((dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
-    const atStart = el.scrollLeft <= 4;
-
-    if (dir > 0 && atEnd) {
-      el.scrollTo({ left: 0, behavior: "smooth" });
-    } else if (dir < 0 && atStart) {
-      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
-    } else {
-      el.scrollBy({ left: dir * (CARD_WIDTH + CARD_GAP), behavior: "smooth" });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!overflowing || paused) return undefined;
-    intervalRef.current = setInterval(
-      () => scrollByAmount(1),
-      AUTO_SCROLL_INTERVAL_MS,
-    );
-    return () => clearInterval(intervalRef.current);
-  }, [overflowing, paused, scrollByAmount]);
-
-  if (items.length === 0) return null;
+  const displayList = items.length > 0 ? items : defaultStories;
 
   return (
-    <Box component="section" id="testimonials" sx={{ py: 5 }}>
+    <Box
+      component="section"
+      id="testimonials"
+      sx={{
+        py: { xs: 9, md: 13 },
+        bgcolor: "#ffffff",
+      }}
+    >
       <Container maxWidth="lg">
-        <SectionTitle
-          eyebrow="Client Stories"
-          title="What Clients Say"
-          subtitle="Real results from real people"
-        />
+        {/* Centered Heading Block */}
+        <Box sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
+          <Typography
+            sx={{
+              color: colors.primary,
+              fontWeight: 700,
+              fontSize: "0.82rem",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              mb: 1.5,
+            }}
+          >
+            Success Stories
+          </Typography>
 
+          <Typography
+            variant="h2"
+            sx={{
+              fontFamily: serifFont,
+              fontSize: { xs: "2.2rem", md: "2.8rem" },
+              fontWeight: 600,
+              color: colors.textDark,
+              mb: 1.75,
+            }}
+          >
+            Real People. Real Results.
+          </Typography>
+
+          <Typography
+            sx={{
+              color: colors.textLight,
+              fontSize: "1rem",
+              maxWidth: 580,
+              mx: "auto",
+              lineHeight: 1.7,
+            }}
+          >
+            See how my clients have transformed their health and their lives
+            with personalized nutrition coaching.
+          </Typography>
+        </Box>
+
+        {/* 3 Story Cards */}
         <Box
           sx={{
-            position: "relative",
-            "&:hover .carousel-arrow": { opacity: 1 },
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(3, 1fr)",
+            },
+            gap: 3.5,
           }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
         >
-          <IconButton
-            className="carousel-arrow"
-            onClick={() => scrollByAmount(-1)}
-            sx={{
-              position: "absolute",
-              left: -20,
-              top: "40%",
-              zIndex: 2,
-              bgcolor: colors.white,
-              boxShadow: 2,
-              display: { xs: "none", md: "flex" },
-              opacity: 0,
-              transition: "opacity 0.25s",
-            }}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-
-          <Box>
-            <Box
-              ref={scrollRef}
+          {displayList.slice(0, 3).map((t) => (
+            <Card
+              key={t.id}
+              elevation={0}
               sx={{
+                p: { xs: 3, md: 4 },
+                borderRadius: 4,
+                border: `1px solid ${colors.border}`,
+                bgcolor: colors.white,
                 display: "flex",
-                gap: 2.5,
-                overflowX: "auto",
-                scrollSnapType: "x mandatory",
-                pb: 2,
-                "&::-webkit-scrollbar": { display: "none" },
-                scrollbarWidth: "none",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  borderColor: colors.primary,
+                  transform: "translateY(-6px)",
+                  boxShadow: "0 18px 36px rgba(121, 152, 91, 0.1)",
+                },
               }}
             >
-              {items.map((t) => (
-                <Card
-                  key={t.id}
+              <CardContent sx={{ p: 0, mb: 3 }}>
+                {/* Sage Green Quotation Mark */}
+                <Box sx={{ color: colors.primary, mb: 2, display: "flex" }}>
+                  <FormatQuoteIcon sx={{ fontSize: "2.4rem", transform: "scaleX(-1)" }} />
+                </Box>
+
+                <Typography
                   sx={{
-                    minWidth: CARD_WIDTH,
-                    maxWidth: CARD_WIDTH,
-                    flexShrink: 0,
-                    scrollSnapAlign: "start",
-                    overflow: "hidden",
-                    transition: "all 0.3s",
-                    "&:hover": {
-                      transform: "translateY(-6px)",
-                      boxShadow: "0 18px 40px rgba(99,102,241,0.1)",
-                      borderColor: colors.primary,
-                    },
+                    color: colors.textDark,
+                    fontSize: "0.95rem",
+                    lineHeight: 1.75,
+                    fontStyle: "normal",
+                    fontWeight: 400,
                   }}
                 >
-                  {t.type === "PHOTO" && t.mediaUrl && (
-                    <Box
-                      component="img"
-                      src={t.mediaUrl}
-                      alt={t.clientName}
-                      sx={{
-                        width: "100%",
-                        height: 180,
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  )}
-                  {t.type === "VIDEO" && t.mediaUrl && (
-                    <Box sx={{ width: "100%", height: 180, bgcolor: "#000" }}>
-                      <video
-                        src={t.mediaUrl}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
-                        controls
-                      />
-                    </Box>
-                  )}
-                  <CardContent>
-                    {t.rating && (
-                      <Box sx={{ color: "#f59e0b", mb: 1.5, display: "flex" }}>
-                        {[...Array(t.rating)].map((_, i) => (
-                          <StarIcon key={i} fontSize="small" />
-                        ))}
-                      </Box>
-                    )}
-                    {t.textContent && (
-                      <Typography
-                        sx={{
-                          color: colors.textLight,
-                          fontStyle: "italic",
-                          mb: 2,
-                          lineHeight: 1.7,
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        "{t.textContent}"
-                      </Typography>
-                    )}
-                    <Box
-                      sx={{ display: "flex", gap: 1.25, alignItems: "center" }}
-                    >
-                      <Avatar
-                        sx={{ background: gradientBrand, fontWeight: 700 }}
-                      >
-                        {t.clientName?.[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography
-                          sx={{ fontWeight: 700, fontSize: "0.92rem" }}
-                        >
-                          {t.clientName}
-                        </Typography>
-                        {t.tag && (
-                          <Typography
-                            sx={{
-                              fontSize: "0.78rem",
-                              color: colors.primary,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {t.tag}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </Box>
+                  "{t.textContent}"
+                </Typography>
 
-          <IconButton
-            className="carousel-arrow"
-            onClick={() => scrollByAmount(1)}
-            sx={{
-              position: "absolute",
-              right: -20,
-              top: "40%",
-              zIndex: 2,
-              bgcolor: colors.white,
-              boxShadow: 2,
-              display: { xs: "none", md: "flex" },
-              opacity: 0,
-              transition: "opacity 0.25s",
-            }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
+                {t.rating && (
+                  <Box sx={{ mt: 2 }}>
+                    <Rating value={t.rating} readOnly size="small" sx={{ color: colors.accent }} />
+                  </Box>
+                )}
+              </CardContent>
+
+              {/* Author Footer */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, pt: 2, borderTop: `1px solid ${colors.border}` }}>
+                <Avatar
+                  src={t.avatar || t.mediaUrl}
+                  alt={t.clientName}
+                  sx={{
+                    width: 46,
+                    height: 46,
+                    bgcolor: colors.primary,
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                  }}
+                >
+                  {t.clientName?.[0]}
+                </Avatar>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: "0.95rem",
+                      color: colors.textDark,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {t.clientName}
+                  </Typography>
+                  {t.tag && (
+                    <Typography
+                      sx={{
+                        fontSize: "0.8rem",
+                        color: colors.textLight,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {t.tag}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </Card>
+          ))}
         </Box>
       </Container>
     </Box>

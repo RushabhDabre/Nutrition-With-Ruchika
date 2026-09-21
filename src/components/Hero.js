@@ -1,28 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
   Typography,
   Button,
-  Chip,
   Stack,
+  Dialog,
+  DialogContent,
   IconButton,
 } from "@mui/material";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import EventIcon from "@mui/icons-material/Event";
-import { colors, gradientBrand } from "../theme";
+import PlayCircleOutlineIcon from "@mui/icons-material/PlayCircleOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import { colors, serifFont } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
-import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
-
-const trustStats = [
-  { number: "500+", label: "Clients Guided" },
-  { number: "8+", label: "Years Experience" },
-  { number: "4.9★", label: "Client Rating" },
-];
 
 /** Matches youtube.com/watch?v=, youtu.be/, and youtube.com/embed/ formats. */
 function extractYouTubeId(url) {
@@ -33,77 +24,9 @@ function extractYouTubeId(url) {
   return match ? match[1] : null;
 }
 
-/** YouTube link -> autoplaying muted looping embed. Anything else (e.g. a
- *  direct Cloudinary .mp4 URL) -> native HTML5 video, same behavior. */
-function VideoEmbed({ url }) {
-  const iframeRef = useRef(null);
-  const videoRef = useRef(null);
-
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
-
-  if (!url) {
-    return <Typography sx={{ fontSize: "3.5rem" }}>🎥</Typography>;
-  }
-
+function VideoModal({ open, onClose, url }) {
+  if (!url) return null;
   const youtubeId = extractYouTubeId(url);
-
-  const sendYouTubeCommand = (func, args = []) => {
-    if (!iframeRef.current) return;
-
-    iframeRef.current.contentWindow?.postMessage(
-      JSON.stringify({
-        event: "command",
-        func,
-        args,
-      }),
-      "https://www.youtube.com",
-    );
-  };
-
-  const handleMuteToggle = () => {
-    if (youtubeId) {
-      if (isMuted) {
-        sendYouTubeCommand("unMute");
-        setIsMuted(false);
-      } else {
-        sendYouTubeCommand("mute");
-        setIsMuted(true);
-      }
-    } else if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  const handleFullscreen = async () => {
-    const element = youtubeId ? iframeRef.current : videoRef.current;
-
-    if (!element) return;
-
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await element.requestFullscreen();
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  };
-
   const embedUrl = youtubeId
     ? `https://www.youtube.com/embed/${youtubeId}` +
       `?autoplay=1` +
@@ -119,110 +42,71 @@ function VideoEmbed({ url }) {
     : null;
 
   return (
-    <Box
-      className="video-container"
-      sx={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      PaperProps={{
+        sx: {
+          bgcolor: "#000",
+          borderRadius: 3,
+          overflow: "hidden",
+          position: "relative",
+        },
       }}
     >
-      {youtubeId ? (
-        <Box
-          component="iframe"
-          ref={iframeRef}
-          src={embedUrl}
-          title="Introduction video"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowFullScreen
-          sx={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            display: "block",
-          }}
-        />
-      ) : (
-        <Box
-          component="video"
-          ref={videoRef}
-          src={url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          sx={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-          }}
-        />
-      )}
-
-      {/* Custom controls */}
-      <Stack
-        direction="row"
-        spacing={1}
+      <IconButton
+        onClick={onClose}
+        aria-label="Close video"
         sx={{
           position: "absolute",
-          right: 16,
-          bottom: 16,
+          top: 12,
+          right: 12,
+          color: "#fff",
+          bgcolor: "rgba(0,0,0,0.6)",
           zIndex: 10,
-
-          opacity: 0,
-          visibility: "hidden",
-          transition: "opacity 0.25s ease, visibility 0.25s ease",
-
-          ".video-container:hover &": {
-            opacity: 1,
-            visibility: "visible",
-          },
+          "&:hover": { bgcolor: "rgba(0,0,0,0.85)" },
         }}
       >
-        <IconButton
-          onClick={handleMuteToggle}
-          aria-label={isMuted ? "Unmute video" : "Mute video"}
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: "rgba(0,0,0,0.25)",
-            color: "#fff",
-            backdropFilter: "blur(4px)",
-            "&:hover": {
-              bgcolor: "rgba(0,0,0,0.75)",
-            },
-          }}
-        >
-          {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-        </IconButton>
-
-        <IconButton
-          onClick={handleFullscreen}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: "rgba(0,0,0,0.25)",
-            color: "#fff",
-            backdropFilter: "blur(4px)",
-            "&:hover": {
-              bgcolor: "rgba(0,0,0,0.75)",
-            },
-          }}
-        >
-          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-        </IconButton>
-      </Stack>
-    </Box>
+        <CloseIcon />
+      </IconButton>
+      <DialogContent sx={{ p: 0, aspectRatio: "16/9", bgcolor: "#000" }}>
+        {youtubeId ? (
+          <Box
+            component="iframe"
+            src={embedUrl}
+            title="Introduction video"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            sx={{
+              width: "100%",
+              height: "100%",
+              border: "none",
+              display: "block",
+            }}
+          />
+        ) : (
+          <Box
+            component="video"
+            src={url}
+            controls
+            autoPlay
+            sx={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
 export default function Hero({ topOffset = 96 }) {
   const { openBooking } = useBooking();
-  const { contact, hero } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const { hero } = useSiteContent();
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  // Use the cropped image from the uploaded design, or a high-res photo of a woman with salad in kitchen
+  const heroBg = "/assets/images/nourish-hero-bg.png";
 
   return (
     <Box
@@ -230,195 +114,141 @@ export default function Hero({ topOffset = 96 }) {
       sx={{
         position: "relative",
         overflow: "hidden",
+        minHeight: { xs: "580px", md: "680px" },
+        display: "flex",
+        alignItems: "center",
         pt: `${topOffset + 46}px`,
-        pb: 11,
-        // background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%)`,
+        pb: { xs: 8, md: 10 },
+        backgroundImage: {
+          xs: `linear-gradient(180deg, rgba(13, 21, 14, 0.88) 0%, rgba(13, 21, 14, 0.92) 100%), url("${heroBg}")`,
+          md: `linear-gradient(to right, rgba(12, 19, 13, 0.92) 0%, rgba(12, 19, 13, 0.85) 45%, rgba(12, 19, 13, 0.35) 75%, rgba(12, 19, 13, 0.1) 100%), url("${heroBg}")`,
+        },
+        backgroundSize: {
+          xs: "cover",
+          md: "auto 100%",
+        },
+        backgroundPosition: {
+          xs: "center center",
+          md: "right center",
+        },
+        backgroundRepeat: "no-repeat",
+        backgroundColor: "#0d150e",
+        color: "#ffffff",
       }}
     >
-      {/* <Box
-          component="img"
-          // src="/assets/images/HeroBg.png"
-          alt=""
-          aria-hidden="true"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: {
-              xs: "center center",
-              md: "center center",
-            },
-            opacity: 0.55,
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 0,
-          }}
-        /> */}
-      <Container
-        maxWidth="lg"
-        sx={{
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "0.85fr 1.15fr" },
-            gap: { xs: 5, md: 6 },
-            alignItems: "center",
-          }}
-        >
-          <Box>
-            <Chip
-              label="🌿 Certified Nutritionist & Dietitian"
-              sx={{
-                bgcolor: "rgba(99,102,241,0.1)",
-                color: colors.primary,
-                fontWeight: 700,
-                mb: 2.5,
-                px: 1,
-              }}
-            />
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: "2.2rem", md: "3.1rem" },
-                lineHeight: 1.15,
-                mb: 2.5,
-              }}
-            >
-              {hero.headline}{" "}
-              <Box
-                component="span"
-                sx={{
-                  background: gradientBrand,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
-                {hero.headlineHighlight}
-              </Box>
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "1.15rem",
-                color: colors.textLight,
-                mb: 4,
-                lineHeight: 1.8,
-              }}
-            >
-              {hero.tagline}
-            </Typography>
+      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2 }}>
+        <Box sx={{ maxWidth: { xs: "100%", md: "620px" } }}>
+          {/* Eyebrow */}
+          <Typography
+            sx={{
+              color: "#9db884",
+              fontWeight: 700,
+              fontSize: { xs: "0.78rem", sm: "0.85rem" },
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              mb: 2,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            Nutrition Coaching For Real Life
+          </Typography>
 
-            <Stack
-              direction="row"
-              spacing={2}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ mb: 5 }}
+          {/* Headline */}
+          <Typography
+            variant="h1"
+            sx={{
+              fontFamily: serifFont,
+              fontSize: { xs: "2.5rem", sm: "3.2rem", md: "3.85rem" },
+              fontWeight: 600,
+              lineHeight: 1.12,
+              color: "#ffffff",
+              mb: 2.5,
+              textShadow: "0 2px 10px rgba(0,0,0,0.3)",
+            }}
+          >
+            {hero.headline || "Nourish Your Body."}
+            <br />
+            {hero.headlineHighlight || "Transform Your Life."}
+          </Typography>
+
+          {/* Tagline */}
+          <Typography
+            sx={{
+              fontSize: { xs: "1rem", sm: "1.1rem" },
+              lineHeight: 1.75,
+              color: "rgba(255, 255, 255, 0.88)",
+              mb: 4.5,
+              fontWeight: 400,
+              maxWidth: 540,
+            }}
+          >
+            {hero.tagline ||
+              "Personalized nutrition coaching to help you build healthy habits, feel your best, and reach your goals—without extreme diets or restrictions."}
+          </Typography>
+
+          {/* Call to action buttons */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            alignItems={{ xs: "stretch", sm: "center" }}
+          >
+            <Button
+              onClick={openBooking}
+              variant="contained"
+              size="large"
+              sx={{
+                bgcolor: colors.primary,
+                color: colors.white,
+                py: 1.6,
+                px: 3.8,
+                borderRadius: 50,
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                boxShadow: "0 8px 24px rgba(121, 152, 91, 0.35)",
+                "&:hover": {
+                  bgcolor: colors.primaryDark,
+                },
+              }}
             >
+              Book Your Free Consultation
+            </Button>
+
+            {hero.videoUrl && (
               <Button
-                onClick={openBooking}
-                variant="contained"
+                onClick={() => setVideoOpen(true)}
+                variant="text"
                 size="large"
-                startIcon={<EventIcon />}
+                startIcon={
+                  <PlayCircleOutlineIcon sx={{ fontSize: "1.4rem" }} />
+                }
                 sx={{
-                  background: gradientBrand,
-                  py: 1.7,
-                  px: 4,
-                  boxShadow: "0 4px 15px rgba(99,102,241,0.3)",
+                  color: "#ffffff",
+                  py: 1.4,
+                  px: 2.5,
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.12)",
+                  },
                 }}
               >
-                Book Consultation
+                Watch Video
               </Button>
-              <Button
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-                variant="contained"
-                size="large"
-                startIcon={<WhatsAppIcon />}
-                sx={{
-                  bgcolor: colors.whatsapp,
-                  py: 1.7,
-                  px: 4,
-                  boxShadow: "0 4px 15px rgba(37,211,102,0.3)",
-                  "&:hover": { bgcolor: "#1fb356" },
-                }}
-              >
-                WhatsApp Me
-              </Button>
-            </Stack>
-
-            <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
-              {trustStats.map((t) => (
-                <Box key={t.label}>
-                  <Typography
-                    sx={{
-                      fontSize: "1.5rem",
-                      fontWeight: 800,
-                      color: colors.primary,
-                    }}
-                  >
-                    {t.number}
-                  </Typography>
-                  <Typography
-                    sx={{ fontSize: "0.8rem", color: colors.textLight }}
-                  >
-                    {t.label}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-
-          <Box sx={{ position: "relative" }}>
-            <Box
-              sx={{
-                background: gradientBrand,
-                borderRadius: "10px",
-                aspectRatio: "16/10",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 30px 60px rgba(99,102,241,0.25)",
-                overflow: "hidden",
-                width: "100%",
-              }}
-            >
-              <VideoEmbed url={hero.videoUrl} />
-            </Box>
-            {/* <Paper
-              elevation={0}
-              sx={{
-                position: 'absolute', bottom: -20, left: -20,
-                p: '18px 24px', borderRadius: '16px',
-                boxShadow: '0 15px 40px rgba(0,0,0,0.12)',
-                display: 'flex', alignItems: 'center', gap: 1.75,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 44, height: 44, borderRadius: '10px',
-                  background: gradientBrand,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: colors.white, fontSize: '1.2rem',
-                }}
-              >
-                🎓
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>M.Sc. Nutrition</Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: colors.textLight }}>Registered Dietitian</Typography>
-              </Box>
-            </Paper> */}
-          </Box>
+            )}
+          </Stack>
         </Box>
       </Container>
+
+      {/* Video Lightbox Modal */}
+      {hero.videoUrl && (
+        <VideoModal
+          open={videoOpen}
+          onClose={() => setVideoOpen(false)}
+          url={hero.videoUrl}
+        />
+      )}
     </Box>
   );
 }

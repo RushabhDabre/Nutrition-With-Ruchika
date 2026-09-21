@@ -3,7 +3,8 @@ import { Box, Container, Typography, IconButton, Fade } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { keyframes } from '@emotion/react';
-import { colors, gradientBrand } from '../theme';
+// import { colors, gradientBrand } from '../theme';
+import { colors } from '../theme';
 import { apiBaseUrl } from '../data/siteData';
 
 const ROTATE_INTERVAL_MS = 5000;
@@ -53,7 +54,8 @@ export default function BannerStrip() {
   };
 
   return (
-    <Box sx={{ background: gradientBrand, py: 1.1, position: 'relative', overflow: 'hidden' }}>
+    // <Box sx={{ background: gradientBrand, py: 1.1, position: 'relative', overflow: 'hidden' }}>
+    <Box sx={{ bgcolor: colors.forest, color: '#ffffff', py: 1.1, position: 'relative', overflow: 'hidden' }}>
       <Container maxWidth="lg">
         <Fade in={visible} timeout={300}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap', minHeight: 28 }}>
