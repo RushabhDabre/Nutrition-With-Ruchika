@@ -17,6 +17,7 @@ import Contact from "./components/Contact";
 import FAQ from "./components/FAQ";
 import { FinalCTA, Footer, WhatsAppFloat } from "./components/FooterSection";
 import BookingFlow from "./components/BookingFlow";
+import BookingErrorBoundary from "./components/BookingErrorBoundary";
 import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
 
@@ -88,7 +89,9 @@ function MainSite() {
           <Footer />
         </Box>
         <WhatsAppFloat />
-        <BookingFlow />
+        <BookingErrorBoundary>
+          <BookingFlow />
+        </BookingErrorBoundary>
         <OfferModal />
       </Box>
     </BookingProvider>

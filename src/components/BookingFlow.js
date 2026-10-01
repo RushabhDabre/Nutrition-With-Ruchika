@@ -30,6 +30,7 @@ import {
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
 import DateTabPicker from "./DateTabPicker";
+import { getUserFacingError } from "../utils/userFacingError";
 
 const steps = ["Your Details", "Payment", "Confirmed"];
 
@@ -193,7 +194,7 @@ export default function BookingFlow() {
           setConfirmedBooking(verifyData.booking);
           setActiveStep(2);
         } catch (err) {
-          setApiError(err.message);
+          setApiError(getUserFacingError(err));
         } finally {
           setSubmitting(false);
         }
@@ -206,10 +207,8 @@ export default function BookingFlow() {
       },
     });
 
-    razorpay.on("payment.failed", (resp) => {
-      setApiError(
-        resp.error?.description || "Payment failed. Please try again.",
-      );
+    razorpay.on("payment.failed", () => {
+      setApiError("Payment was not completed. Please try again.");
       setSubmitting(false);
     });
 
@@ -255,7 +254,7 @@ export default function BookingFlow() {
 
       openRazorpay(orderData);
     } catch (err) {
-      setApiError(err.message);
+      setApiError(getUserFacingError(err));
       setSubmitting(false);
     }
   };
