@@ -32,7 +32,7 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
   const [existingLinks, setExistingLinks] = useState([]);
   const { showSnackbar, showConfirm } = useFeedback();
 
-  const loadPlansAndLinks = async () => {
+  const loadPlansAndLinks = React.useCallback(async () => {
     setLoading(true);
     try {
       const [plansData, linksData] = await Promise.all([
@@ -46,14 +46,14 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
     } finally {
       setLoading(false);
     }
-  };
+  }, [booking, showSnackbar]);
 
   useEffect(() => {
     if (!open) return;
     setCreatedLink(null);
     setCustomOpen(false);
     loadPlansAndLinks();
-  }, [open, booking]);
+  }, [open, booking, loadPlansAndLinks]);
 
   const activePaidLink = existingLinks.find(l => l.status === 'PAID');
 

@@ -133,7 +133,7 @@ export default function BookingsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showSnackbar]);
 
   useEffect(() => {
     loadDashboard();
@@ -539,9 +539,7 @@ export default function BookingsDashboard() {
                               <Typography variant="body2">₹{Number(link.amountInr || 0).toLocaleString('en-IN')} • {link.status}</Typography>
                               <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{link.razorpayShortUrl}</Typography>
                             </Box>
-                            {link.razorpayShortUrl && (
-                              <Button size="small" onClick={() => navigator.clipboard?.writeText(link.razorpayShortUrl)}>Copy</Button>
-                            )}
+                            {link.razorpayShortUrl && (<Box sx={{ display: 'flex', gap: 1 }}><Button size="small" onClick={() => navigator.clipboard?.writeText(link.razorpayShortUrl)}>Copy</Button>{link.status !== 'PAID' && <Button size="small" color="success" onClick={() => handleMarkPaid(link.id)}>Mark Paid</Button>}</Box>)}
                           </Stack>
                         </CardContent>
                       </Card>
@@ -583,4 +581,3 @@ export default function BookingsDashboard() {
     </Box>
   );
 }
-
