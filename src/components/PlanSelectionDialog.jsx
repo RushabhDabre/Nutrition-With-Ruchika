@@ -18,26 +18,31 @@ import {
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LinkIcon from "@mui/icons-material/Link";
-import { createConsultationPlan, createPlanPaymentLink, getConsultationPlans } from "../utils/bookingsApi.js";
+import { createConsultationPlan, createPlanPaymentLink, getConsultationPlans, getBookingPaymentLinks } from "../utils/bookingsApi.js";
+import { useFeedback } from "../context/FeedbackContext";
 
 export default function PlanSelectionDialog({ open, booking, onClose, onSuccess }) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creatingPlanId, setCreatingPlanId] = useState(null);
-  const [error, setError] = useState("");
   const [createdLink, setCreatedLink] = useState(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", priceInr: "", description: "" });
   const [customSaving, setCustomSaving] = useState(false);
+  const [existingLinks, setExistingLinks] = useState([]);
+  const { showSnackbar, showConfirm } = useFeedback();
 
-  const loadPlans = async () => {
+  const loadPlansAndLinks = async () => {
     setLoading(true);
-    setError("");
     try {
-      const data = await getConsultationPlans();
-      setPlans(Array.isArray(data) ? data : []);
+      const [plansData, linksData] = await Promise.all([
+        getConsultationPlans(),
+        booking?.id ? getBookingPaymentLinks(booking.id).catch(() => []) : Promise.resolve([])
+      ]);
+      setPlans(Array.isArray(plansData) ? plansData : []);
+      setExistingLinks(Array.isArray(linksData) ? linksData : []);
     } catch (err) {
-      setError(err.message || "Could not load plans.");
+      showSnackbar(err.message || "Could not load plans.", "error");
     } finally {
       setLoading(false);
     }
@@ -47,20 +52,39 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
     if (!open) return;
     setCreatedLink(null);
     setCustomOpen(false);
-    loadPlans();
-  }, [open]);
+    loadPlansAndLinks();
+  }, [open, booking]);
+
+  const activePaidLink = existingLinks.find(l => l.status === 'PAID');
 
   const handleCreateLink = async (plan) => {
     if (!booking?.id) return;
+    
+    // Check if a link already exists for this booking
+    const activeLink = existingLinks.find(l => l.status === 'PAID' || l.status === 'CREATED');
+    if (activeLink) {
+      const isPaid = activeLink.status === 'PAID';
+      const proceed = await showConfirm({
+        title: isPaid ? 'Payment Already Received!' : 'Payment Link Already Exists!',
+        message: isPaid 
+          ? `"${activeLink.planNameSnapshot}" — ₹${Number(activeLink.amountInr || 0).toLocaleString("en-IN")} is already marked as PAID.\n\nAre you sure you want to create a duplicate link for "${plan.name}"?`
+          : `There is already an active payment link for "${activeLink.planNameSnapshot}".\n\nAre you sure you want to create a new one for "${plan.name}"?`,
+        type: 'warning',
+        confirmText: 'Create Anyway'
+      });
+      if (!proceed) return;
+    }
+
     setCreatingPlanId(plan.id);
-    setError("");
 
     try {
       const result = await createPlanPaymentLink(booking.id, plan.id);
       setCreatedLink(result);
+      showSnackbar("Payment link generated successfully!", "success");
       onSuccess?.(result);
+      loadPlansAndLinks(); // Refresh list to show newly created one
     } catch (err) {
-      setError(err.message || "Could not create payment link.");
+      showSnackbar(err.message || "Could not create payment link.", "error");
     } finally {
       setCreatingPlanId(null);
     }
@@ -68,7 +92,6 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
 
   const handleCreateCustomPlan = async () => {
     setCustomSaving(true);
-    setError("");
     try {
       await createConsultationPlan({
         name: customForm.name.trim(),
@@ -77,9 +100,10 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
       });
       setCustomForm({ name: "", priceInr: "", description: "" });
       setCustomOpen(false);
-      await loadPlans();
+      showSnackbar("Custom plan created!", "success");
+      await loadPlansAndLinks();
     } catch (err) {
-      setError(err.message || "Could not create the custom plan.");
+      showSnackbar(err.message || "Could not create the custom plan.", "error");
     } finally {
       setCustomSaving(false);
     }
@@ -98,7 +122,11 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
 
       <DialogContent dividers>
         <Stack spacing={2.5}>
-          {error && <Alert severity="error">{error}</Alert>}
+          {activePaidLink && (
+            <Alert severity="warning" sx={{ fontWeight: 500 }}>
+              Payment already received for <b>{activePaidLink.planNameSnapshot}</b> (₹{Number(activePaidLink.amountInr || 0).toLocaleString("en-IN")}). You generally do not need to create another payment link.
+            </Alert>
+          )}
 
           {createdLink && (
             <Alert

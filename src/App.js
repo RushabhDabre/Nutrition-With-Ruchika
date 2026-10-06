@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { BookingProvider } from "./context/BookingContext";
 import { SiteContentProvider } from "./context/SiteContentContext";
+import { FeedbackProvider } from "./context/FeedbackContext";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import BannerStrip from "./components/BannerStrip";
@@ -100,14 +101,16 @@ function MainSite() {
 
 function App() {
   return (
-    <SiteContentProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainSite />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </SiteContentProvider>
+    <FeedbackProvider>
+      <SiteContentProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainSite />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Routes>
+        </BrowserRouter>
+      </SiteContentProvider>
+    </FeedbackProvider>
   );
 }
 

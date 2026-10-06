@@ -97,3 +97,13 @@ export async function getBookingPaymentLinks(bookingId) {
 
   return res.json();
 }
+
+export async function markPaymentLinkPaid(paymentId) {
+  const res = await adminFetch(`/api/admin/consultation-plans/payment-links/${paymentId}/mark-paid`, {
+    method: "POST"
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to mark as paid");
+  }
+}

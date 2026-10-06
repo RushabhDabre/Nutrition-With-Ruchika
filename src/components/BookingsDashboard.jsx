@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -35,7 +34,8 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
-import { getAdminBookings, getBookingPaymentLinks, getUnviewedBookingCount, markBookingAsViewed, updateMeetingStatus } from '../utils/bookingsApi.js';
+import { getAdminBookings, getBookingPaymentLinks, getUnviewedBookingCount, markBookingAsViewed, markPaymentLinkPaid, updateMeetingStatus } from '../utils/bookingsApi.js';
+import { useFeedback } from '../context/FeedbackContext';
 import PlanSelectionDialog from './PlanSelectionDialog.jsx';
 
 function formatDate(dateValue) {
@@ -109,15 +109,13 @@ export default function BookingsDashboard() {
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const { showSnackbar, showConfirm } = useFeedback();
   const [meetingUpdating, setMeetingUpdating] = useState(false);
-  const [error, setError] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
-    setError('');
-
     try {
       const [bookingData, countData] = await Promise.all([
         getAdminBookings(),
@@ -131,7 +129,7 @@ export default function BookingsDashboard() {
         return nextBookings.find((item) => item.id === current.id) || current;
       });
     } catch (err) {
-      setError(err.message || 'Could not load bookings.');
+      showSnackbar(err.message || 'Could not load bookings.', 'error');
     } finally {
       setLoading(false);
     }
@@ -147,6 +145,27 @@ export default function BookingsDashboard() {
     }, 30000);
     return () => window.clearInterval(timer);
   }, [loadDashboard]);
+
+  // Auto-poll payment links every 10 seconds if the modal is open and has pending payments
+  useEffect(() => {
+    let linkTimer;
+    if (selectedBooking && selectedPaymentLinks.length > 0) {
+      const hasPending = selectedPaymentLinks.some((l) => l.status !== 'PAID' && l.status !== 'CANCELLED' && l.status !== 'EXPIRED');
+      if (hasPending) {
+        linkTimer = window.setInterval(async () => {
+          try {
+            const links = await getBookingPaymentLinks(selectedBooking.id);
+            setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+          } catch (err) {
+            // Silently ignore background polling errors
+          }
+        }, 10000);
+      }
+    }
+    return () => {
+      if (linkTimer) window.clearInterval(linkTimer);
+    };
+  }, [selectedBooking, selectedPaymentLinks]);
 
   const filteredBookings = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -191,7 +210,7 @@ export default function BookingsDashboard() {
       const links = await getBookingPaymentLinks(booking.id);
       setSelectedPaymentLinks(Array.isArray(links) ? links : []);
     } catch (err) {
-      setError(err.message || 'Could not load payment links.');
+      showSnackbar(err.message || 'Could not load payment links.', 'error');
     }
 
     if (!booking?.viewed) {
@@ -224,26 +243,64 @@ export default function BookingsDashboard() {
     window.open(booking.meetingLink, '_blank', 'noopener,noreferrer');
   };
 
-  const handleMeetingStatusChange = async (event) => {
-    if (!selectedBooking) return;
+  const handleMeetingStatusChange = async (event, bookingOverride = null) => {
+    // React's Select onChange passes (event, childElement)
+    const targetBooking = (bookingOverride && bookingOverride.id) ? bookingOverride : selectedBooking;
+    if (!targetBooking) return;
     const nextStatus = event.target.value;
-    if (nextStatus !== 'MEETING_COMPLETED') return;
 
     setMeetingUpdating(true);
-    setError('');
     try {
-      const updated = await updateMeetingStatus(selectedBooking.id, nextStatus);
-      setSelectedBooking(updated);
+      const updated = await updateMeetingStatus(targetBooking.id, nextStatus);
+      if (selectedBooking && selectedBooking.id === updated.id) {
+        setSelectedBooking(updated);
+      }
       setBookings((current) => current.map((item) => item.id === updated.id ? updated : item));
+      showSnackbar("Meeting status updated", "success");
     } catch (err) {
-      setError(err.message || 'Could not update meeting status.');
+      showSnackbar(err.message || 'Could not update meeting status.', 'error');
     } finally {
       setMeetingUpdating(false);
     }
   };
 
-  const openPlanDialog = () => {
-    if (selectedBooking?.meetingStatus !== 'MEETING_COMPLETED') return;
+  const handleMarkPaid = async (paymentId) => {
+    try {
+      await markPaymentLinkPaid(paymentId);
+      const links = await getBookingPaymentLinks(selectedBooking.id);
+      setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+      showSnackbar("Payment marked as PAID manually", "success");
+    } catch (err) {
+      showSnackbar(err.message || 'Could not mark as paid.', 'error');
+    }
+  };
+
+  const openPlanDialog = async (bookingOverride = null) => {
+    // If called from onClick, bookingOverride is the synthetic event
+    const targetBooking = (bookingOverride && bookingOverride.id) ? bookingOverride : selectedBooking;
+    if (!targetBooking || targetBooking.meetingStatus !== 'MEETING_COMPLETED') return;
+
+    // Check if there's already a PAID payment link for this booking
+    try {
+      const links = await getBookingPaymentLinks(targetBooking.id);
+      const paidLink = Array.isArray(links) ? links.find((l) => l.status === 'PAID') : null;
+
+      if (paidLink) {
+        const proceed = await showConfirm({
+          title: 'Payment already received!',
+          message: `"${paidLink.planNameSnapshot}" — ₹${Number(paidLink.amountInr || 0).toLocaleString('en-IN')} is already marked as PAID.\n\nDo you still want to create another payment link?`,
+          type: 'warning',
+          confirmText: 'Create Anyway'
+        });
+        if (!proceed) return;
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    if (bookingOverride && bookingOverride.id) {
+      setSelectedBooking(bookingOverride);
+    }
     setPlanDialogOpen(true);
   };
 
@@ -281,10 +338,7 @@ export default function BookingsDashboard() {
             </Tooltip>
           </Stack>
         </Stack>
-
-        {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
-
-        <Grid container spacing={2}>
+<Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
             <Card><CardContent><Typography variant="body2" color="text.secondary">New bookings</Typography><Typography variant="h5" fontWeight={700}>{unviewedCount}</Typography></CardContent></Card>
           </Grid>
@@ -529,3 +583,4 @@ export default function BookingsDashboard() {
     </Box>
   );
 }
+

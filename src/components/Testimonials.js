@@ -7,22 +7,27 @@ import {
   CardContent,
   Avatar,
   IconButton,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import CloseIcon from "@mui/icons-material/Close";
 import { colors, gradientBrand } from "../theme";
 import { apiBaseUrl } from "../data/siteData";
 import SectionTitle from "./SectionTitle";
 
-const CARD_WIDTH = 300;
-const CARD_GAP = 20; // px, matches gap: 2.5 (theme spacing 8px * 2.5 = 20px)
+const CARD_WIDTH = 320; // slightly wider to fit content better
+const CARD_GAP = 20;
 const AUTO_SCROLL_INTERVAL_MS = 3500;
 
 export default function Testimonials() {
   const [items, setItems] = useState([]);
   const [overflowing, setOverflowing] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [selectedTestimonial, setSelectedTestimonial] = useState(null); // For the modal
   const scrollRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -33,8 +38,6 @@ export default function Testimonials() {
       .catch(() => setItems([]));
   }, []);
 
-  // Only auto-rotate if the cards actually don't all fit on screen at once -
-  // no point scrolling a row that already shows everything.
   useEffect(() => {
     const check = () => {
       const el = scrollRef.current;
@@ -61,13 +64,13 @@ export default function Testimonials() {
   }, []);
 
   useEffect(() => {
-    if (!overflowing || paused) return undefined;
+    if (!overflowing || paused || selectedTestimonial) return undefined;
     intervalRef.current = setInterval(
       () => scrollByAmount(1),
-      AUTO_SCROLL_INTERVAL_MS,
+      AUTO_SCROLL_INTERVAL_MS
     );
     return () => clearInterval(intervalRef.current);
-  }, [overflowing, paused, scrollByAmount]);
+  }, [overflowing, paused, scrollByAmount, selectedTestimonial]);
 
   if (items.length === 0) return null;
 
@@ -128,6 +131,8 @@ export default function Testimonials() {
                     flexShrink: 0,
                     scrollSnapAlign: "start",
                     overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
                     transition: "all 0.3s",
                     "&:hover": {
                       transform: "translateY(-6px)",
@@ -143,26 +148,29 @@ export default function Testimonials() {
                       alt={t.clientName}
                       sx={{
                         width: "100%",
-                        height: 180,
-                        objectFit: "cover",
+                        height: 220, // slightly taller
+                        objectFit: "contain", // Show full photo without cutting
+                        bgcolor: "#f4f4f5", // Light neutral background for padding
                         display: "block",
                       }}
                     />
                   )}
                   {t.type === "VIDEO" && t.mediaUrl && (
-                    <Box sx={{ width: "100%", height: 180, bgcolor: "#000" }}>
+                    <Box sx={{ width: "100%", height: 220, bgcolor: "#000" }}>
                       <video
                         src={t.mediaUrl}
                         style={{
                           width: "100%",
                           height: "100%",
-                          objectFit: "cover",
+                          objectFit: "contain",
                         }}
                         controls
                       />
                     </Box>
                   )}
-                  <CardContent>
+                  
+                  {/* Card Content with Fixed Height so cards are uniform */}
+                  <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
                     {t.rating && (
                       <Box sx={{ color: "#f59e0b", mb: 1.5, display: "flex" }}>
                         {[...Array(t.rating)].map((_, i) => (
@@ -170,19 +178,46 @@ export default function Testimonials() {
                         ))}
                       </Box>
                     )}
-                    {t.textContent && (
-                      <Typography
-                        sx={{
-                          color: colors.textLight,
-                          fontStyle: "italic",
-                          mb: 2,
-                          lineHeight: 1.7,
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        "{t.textContent}"
-                      </Typography>
-                    )}
+                    
+                    <Box sx={{ flexGrow: 1, mb: 2 }}>
+                      {t.textContent && (
+                        <Typography
+                          sx={{
+                            color: colors.textLight,
+                            fontStyle: "italic",
+                            lineHeight: 1.7,
+                            fontSize: "0.9rem",
+                            // Clamp text to max 4 lines
+                            display: "-webkit-box",
+                            WebkitLineClamp: 4,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          "{t.textContent}"
+                        </Typography>
+                      )}
+                      
+                      {/* Read More button triggers modal */}
+                      {t.textContent && t.textContent.length > 120 && (
+                        <Typography
+                          component="span"
+                          onClick={() => setSelectedTestimonial(t)}
+                          sx={{
+                            color: colors.primary,
+                            fontSize: "0.85rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-block",
+                            mt: 0.5,
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
+                          Read full story
+                        </Typography>
+                      )}
+                    </Box>
+
                     <Box
                       sx={{ display: "flex", gap: 1.25, alignItems: "center" }}
                     >
@@ -235,6 +270,74 @@ export default function Testimonials() {
           </IconButton>
         </Box>
       </Container>
+
+      {/* MODAL / DIALOG for Full Testimonial */}
+      <Dialog
+        open={Boolean(selectedTestimonial)}
+        onClose={() => setSelectedTestimonial(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: "16px" } }}
+      >
+        {selectedTestimonial && (
+          <>
+            <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Avatar sx={{ background: gradientBrand }}>{selectedTestimonial.clientName?.[0]}</Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                    {selectedTestimonial.clientName}
+                  </Typography>
+                  {selectedTestimonial.tag && (
+                    <Typography variant="caption" sx={{ color: colors.primary, fontWeight: 600 }}>
+                      {selectedTestimonial.tag}
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              <IconButton onClick={() => setSelectedTestimonial(null)} sx={{ color: colors.textLight }}>
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            
+            <DialogContent dividers sx={{ p: 0 }}>
+              {/* Media in Modal (Full Size) */}
+              {selectedTestimonial.type === "PHOTO" && selectedTestimonial.mediaUrl && (
+                <Box
+                  component="img"
+                  src={selectedTestimonial.mediaUrl}
+                  alt={selectedTestimonial.clientName}
+                  sx={{ width: "100%", maxHeight: "400px", objectFit: "contain", bgcolor: "#f4f4f5", display: "block" }}
+                />
+              )}
+              {selectedTestimonial.type === "VIDEO" && selectedTestimonial.mediaUrl && (
+                <Box sx={{ width: "100%", maxHeight: "400px", bgcolor: "#000" }}>
+                  <video
+                    src={selectedTestimonial.mediaUrl}
+                    style={{ width: "100%", height: "100%", maxHeight: "400px", objectFit: "contain" }}
+                    controls
+                    autoPlay
+                  />
+                </Box>
+              )}
+              
+              {/* Full Text in Modal */}
+              <Box sx={{ p: 3 }}>
+                {selectedTestimonial.rating && (
+                  <Box sx={{ color: "#f59e0b", mb: 2, display: "flex" }}>
+                    {[...Array(selectedTestimonial.rating)].map((_, i) => (
+                      <StarIcon key={i} />
+                    ))}
+                  </Box>
+                )}
+                <Typography sx={{ color: colors.text, fontStyle: "italic", lineHeight: 1.8, fontSize: "1rem" }}>
+                  "{selectedTestimonial.textContent}"
+                </Typography>
+              </Box>
+            </DialogContent>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 }
