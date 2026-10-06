@@ -1,6 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -15,6 +14,7 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  MenuItem,
   Paper,
   Stack,
   Table,
@@ -33,7 +33,10 @@ import VideoCallIcon from '@mui/icons-material/VideoCall';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
-import { getAdminBookings, getUnviewedBookingCount, markBookingAsViewed } from '../utils/bookingsApi.js';
+import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
+import { getAdminBookings, getBookingPaymentLinks, getUnviewedBookingCount, markBookingAsViewed, markPaymentLinkPaid, updateMeetingStatus } from '../utils/bookingsApi.js';
+import { useFeedback } from '../context/FeedbackContext';
+import PlanSelectionDialog from './PlanSelectionDialog.jsx';
 
 function formatDate(dateValue) {
   if (!dateValue) return '-';
@@ -68,6 +71,22 @@ function isUpcoming(booking) {
   return new Date(`${booking.bookingDate}T${booking.slotStartTime}`) >= new Date();
 }
 
+function meetingLabel(status) {
+  switch (status) {
+    case 'MEETING_PENDING': return 'Meeting Pending';
+    case 'MEETING_COMPLETED': return 'Meeting Completed';
+    default: return 'Scheduled';
+  }
+}
+
+function meetingChipProps(status) {
+  switch (status) {
+    case 'MEETING_PENDING': return { color: 'warning', variant: 'outlined' };
+    case 'MEETING_COMPLETED': return { color: 'success', variant: 'outlined' };
+    default: return { color: 'default', variant: 'outlined' };
+  }
+}
+
 function DetailRow({ label, value }) {
   return (
     <Stack direction="row" spacing={2} sx={{ py: 1 }}>
@@ -85,30 +104,36 @@ export default function BookingsDashboard() {
   const [bookings, setBookings] = useState([]);
   const [unviewedCount, setUnviewedCount] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [selectedPaymentLinks, setSelectedPaymentLinks] = useState([]);
+  const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { showSnackbar, showConfirm } = useFeedback();
+  const [meetingUpdating, setMeetingUpdating] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
-    setError('');
-
     try {
       const [bookingData, countData] = await Promise.all([
         getAdminBookings(),
         getUnviewedBookingCount()
       ]);
-      setBookings(Array.isArray(bookingData) ? bookingData : []);
+      const nextBookings = Array.isArray(bookingData) ? bookingData : [];
+      setBookings(nextBookings);
       setUnviewedCount(Number(countData) || 0);
+      setSelectedBooking((current) => {
+        if (!current) return current;
+        return nextBookings.find((item) => item.id === current.id) || current;
+      });
     } catch (err) {
-      setError(err.message || 'Could not load bookings.');
+      showSnackbar(err.message || 'Could not load bookings.', 'error');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showSnackbar]);
 
   useEffect(() => {
     loadDashboard();
@@ -120,6 +145,27 @@ export default function BookingsDashboard() {
     }, 30000);
     return () => window.clearInterval(timer);
   }, [loadDashboard]);
+
+  // Auto-poll payment links every 10 seconds if the modal is open and has pending payments
+  useEffect(() => {
+    let linkTimer;
+    if (selectedBooking && selectedPaymentLinks.length > 0) {
+      const hasPending = selectedPaymentLinks.some((l) => l.status !== 'PAID' && l.status !== 'CANCELLED' && l.status !== 'EXPIRED');
+      if (hasPending) {
+        linkTimer = window.setInterval(async () => {
+          try {
+            const links = await getBookingPaymentLinks(selectedBooking.id);
+            setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+          } catch (err) {
+            // Silently ignore background polling errors
+          }
+        }, 10000);
+      }
+    }
+    return () => {
+      if (linkTimer) window.clearInterval(linkTimer);
+    };
+  }, [selectedBooking, selectedPaymentLinks]);
 
   const filteredBookings = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -158,10 +204,20 @@ export default function BookingsDashboard() {
 
   const openBooking = async (booking) => {
     setSelectedBooking(booking);
+    setSelectedPaymentLinks([]);
+
+    try {
+      const links = await getBookingPaymentLinks(booking.id);
+      setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+    } catch (err) {
+      showSnackbar(err.message || 'Could not load payment links.', 'error');
+    }
+
     if (!booking?.viewed) {
       try {
         await markBookingAsViewed(booking.id);
         setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, viewed: true } : item));
+        setSelectedBooking((current) => current?.id === booking.id ? { ...current, viewed: true } : current);
         setUnviewedCount((current) => Math.max(0, current - 1));
       } catch (err) {
         if (err.message === 'UNAUTHORIZED') {
@@ -180,13 +236,72 @@ export default function BookingsDashboard() {
         setBookings((current) => current.map((item) => item.id === booking.id ? { ...item, viewed: true } : item));
         setUnviewedCount((current) => Math.max(0, current - 1));
       } catch (err) {
-        if (err.message === 'UNAUTHORIZED') {
-          return;
-        }
+        if (err.message === 'UNAUTHORIZED') return;
       }
     }
 
     window.open(booking.meetingLink, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleMeetingStatusChange = async (event, bookingOverride = null) => {
+    // React's Select onChange passes (event, childElement)
+    const targetBooking = (bookingOverride && bookingOverride.id) ? bookingOverride : selectedBooking;
+    if (!targetBooking) return;
+    const nextStatus = event.target.value;
+
+    setMeetingUpdating(true);
+    try {
+      const updated = await updateMeetingStatus(targetBooking.id, nextStatus);
+      if (selectedBooking && selectedBooking.id === updated.id) {
+        setSelectedBooking(updated);
+      }
+      setBookings((current) => current.map((item) => item.id === updated.id ? updated : item));
+      showSnackbar("Meeting status updated", "success");
+    } catch (err) {
+      showSnackbar(err.message || 'Could not update meeting status.', 'error');
+    } finally {
+      setMeetingUpdating(false);
+    }
+  };
+
+  const handleMarkPaid = async (paymentId) => {
+    try {
+      await markPaymentLinkPaid(paymentId);
+      const links = await getBookingPaymentLinks(selectedBooking.id);
+      setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+      showSnackbar("Payment marked as PAID manually", "success");
+    } catch (err) {
+      showSnackbar(err.message || 'Could not mark as paid.', 'error');
+    }
+  };
+
+  const openPlanDialog = async (bookingOverride = null) => {
+    // If called from onClick, bookingOverride is the synthetic event
+    const targetBooking = (bookingOverride && bookingOverride.id) ? bookingOverride : selectedBooking;
+    if (!targetBooking || targetBooking.meetingStatus !== 'MEETING_COMPLETED') return;
+
+    // Check if there's already a PAID payment link for this booking
+    try {
+      const links = await getBookingPaymentLinks(targetBooking.id);
+      const paidLink = Array.isArray(links) ? links.find((l) => l.status === 'PAID') : null;
+
+      if (paidLink) {
+        const proceed = await showConfirm({
+          title: 'Payment already received!',
+          message: `"${paidLink.planNameSnapshot}" — ₹${Number(paidLink.amountInr || 0).toLocaleString('en-IN')} is already marked as PAID.\n\nDo you still want to create another payment link?`,
+          type: 'warning',
+          confirmText: 'Create Anyway'
+        });
+        if (!proceed) return;
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    if (bookingOverride && bookingOverride.id) {
+      setSelectedBooking(bookingOverride);
+    }
+    setPlanDialogOpen(true);
   };
 
   return (
@@ -204,7 +319,7 @@ export default function BookingsDashboard() {
               {unviewedCount > 0 && <Chip color="error" size="small" label={`${unviewedCount} new`} />}
             </Stack>
             <Typography variant="body2" color="text.secondary">
-              Keep track of paid appointments, client details and upcoming calls.
+              Manage paid appointments, consultations and program payment links.
             </Typography>
           </Stack>
 
@@ -223,10 +338,7 @@ export default function BookingsDashboard() {
             </Tooltip>
           </Stack>
         </Stack>
-
-        {error && <Alert severity="error">{error}</Alert>}
-
-        <Grid container spacing={2}>
+<Grid container spacing={2}>
           <Grid item xs={12} sm={6} md={3}>
             <Card><CardContent><Typography variant="body2" color="text.secondary">New bookings</Typography><Typography variant="h5" fontWeight={700}>{unviewedCount}</Typography></CardContent></Card>
           </Grid>
@@ -273,7 +385,7 @@ export default function BookingsDashboard() {
                 </Box>
               ) : (
                 <TableContainer component={Paper} variant="outlined">
-                  <Table size="small" sx={{ minWidth: 900 }}>
+                  <Table size="small" sx={{ minWidth: 980 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Client</TableCell>
@@ -281,7 +393,7 @@ export default function BookingsDashboard() {
                         <TableCell>Contact</TableCell>
                         <TableCell>Goal</TableCell>
                         <TableCell>Payment</TableCell>
-                        <TableCell>Status</TableCell>
+                        <TableCell>Meeting</TableCell>
                         <TableCell align="right">Actions</TableCell>
                       </TableRow>
                     </TableHead>
@@ -311,7 +423,9 @@ export default function BookingsDashboard() {
                             <Typography variant="body2" noWrap title={booking.goal}>{booking.goal}</Typography>
                           </TableCell>
                           <TableCell>₹{Number(booking.amountPaidInr || 0).toLocaleString('en-IN')}</TableCell>
-                          <TableCell><Chip size="small" label={booking.status || 'CONFIRMED'} color="success" variant="outlined" /></TableCell>
+                          <TableCell>
+                            <Chip size="small" label={meetingLabel(booking.meetingStatus)} {...meetingChipProps(booking.meetingStatus)} />
+                          </TableCell>
                           <TableCell align="right">
                             <Stack direction="row" spacing={0.25} justifyContent="flex-end">
                               <Tooltip title="View details">
@@ -320,6 +434,13 @@ export default function BookingsDashboard() {
                               <Tooltip title={booking.meetingLink ? 'Join meeting' : 'Meeting link not configured'}>
                                 <span>
                                   <IconButton size="small" disabled={!booking.meetingLink} onClick={() => joinMeeting(booking)}><VideoCallIcon fontSize="small" /></IconButton>
+                                </span>
+                              </Tooltip>
+                              <Tooltip title={booking.meetingStatus === 'MEETING_COMPLETED' ? 'Create program payment link' : 'Complete the meeting first'}>
+                                <span>
+                                  <IconButton size="small" disabled={booking.meetingStatus !== 'MEETING_COMPLETED'} onClick={() => { setSelectedBooking(booking); setPlanDialogOpen(true); }}>
+                                    <PaymentOutlinedIcon fontSize="small" />
+                                  </IconButton>
                                 </span>
                               </Tooltip>
                             </Stack>
@@ -348,7 +469,7 @@ export default function BookingsDashboard() {
         <DialogTitle>Booking details</DialogTitle>
         <DialogContent dividers>
           {selectedBooking && (
-            <Stack divider={<Divider flexItem />}>
+            <Stack divider={<Divider flexItem />} spacing={0.5}>
               <DetailRow label="Name" value={selectedBooking.name} />
               <DetailRow label="Age / Gender" value={`${selectedBooking.age || '-'} / ${selectedBooking.gender || '-'}`} />
               <DetailRow label="Weight" value={selectedBooking.weightKg != null ? `${selectedBooking.weightKg} kg` : '-'} />
@@ -363,6 +484,69 @@ export default function BookingsDashboard() {
               <DetailRow label="Amount paid" value={`₹${Number(selectedBooking.amountPaidInr || 0).toLocaleString('en-IN')}`} />
               <DetailRow label="Payment ID" value={selectedBooking.razorpayPaymentId} />
               <DetailRow label="Meeting link" value={selectedBooking.meetingLink} />
+
+              <Box sx={{ py: 1.5 }}>
+                {selectedBooking.meetingStatus === 'NOT_STARTED' ? (
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography variant="body2" color="text.secondary">Meeting status</Typography>
+                    <Chip size="small" label="Scheduled" variant="outlined" />
+                  </Stack>
+                ) : (
+                  <>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      label="Meeting status"
+                      value={selectedBooking.meetingStatus}
+                      onChange={handleMeetingStatusChange}
+                      disabled={meetingUpdating || selectedBooking.meetingStatus === 'MEETING_COMPLETED'}
+                    >
+                      <MenuItem value="MEETING_PENDING">Meeting Pending</MenuItem>
+                      <MenuItem value="MEETING_COMPLETED">Meeting Completed</MenuItem>
+                    </TextField>
+                    {selectedBooking.meetingStatus === 'MEETING_PENDING' && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                        Select “Meeting Completed” after the consultation is finished.
+                      </Typography>
+                    )}
+                  </>
+                )}
+              </Box>
+
+              <Box sx={{ py: 1.5 }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<PaymentOutlinedIcon />}
+                  disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
+                  onClick={openPlanDialog}
+                >
+                  Create Payment Link
+                </Button>
+              </Box>
+
+              {selectedPaymentLinks.length > 0 && (
+                <Box sx={{ py: 1 }}>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Program payment links</Typography>
+                  <Stack spacing={1}>
+                    {selectedPaymentLinks.map((link) => (
+                      <Card key={link.id} variant="outlined">
+                        <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
+                          <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="center">
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography fontWeight={700}>{link.planNameSnapshot}</Typography>
+                              <Typography variant="body2">₹{Number(link.amountInr || 0).toLocaleString('en-IN')} • {link.status}</Typography>
+                              <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{link.razorpayShortUrl}</Typography>
+                            </Box>
+                            {link.razorpayShortUrl && (<Box sx={{ display: 'flex', gap: 1 }}><Button size="small" onClick={() => navigator.clipboard?.writeText(link.razorpayShortUrl)}>Copy</Button>{link.status !== 'PAID' && <Button size="small" color="success" onClick={() => handleMarkPaid(link.id)}>Mark Paid</Button>}</Box>)}
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
             </Stack>
           )}
         </DialogContent>
@@ -378,6 +562,22 @@ export default function BookingsDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <PlanSelectionDialog
+        open={planDialogOpen}
+        booking={selectedBooking}
+        onClose={() => setPlanDialogOpen(false)}
+        onSuccess={async () => {
+          if (selectedBooking?.id) {
+            try {
+              const links = await getBookingPaymentLinks(selectedBooking.id);
+              setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+            } catch {
+              // The created-link response is already displayed in the plan dialog.
+            }
+          }
+        }}
+      />
     </Box>
   );
 }

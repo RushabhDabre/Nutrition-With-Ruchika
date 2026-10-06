@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Box } from "@mui/material";
 import { BookingProvider } from "./context/BookingContext";
 import { SiteContentProvider } from "./context/SiteContentContext";
+import { FeedbackProvider } from "./context/FeedbackContext";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import BannerStrip from "./components/BannerStrip";
@@ -17,6 +18,7 @@ import Contact from "./components/Contact";
 import FAQ from "./components/FAQ";
 import { FinalCTA, Footer, WhatsAppFloat } from "./components/FooterSection";
 import BookingFlow from "./components/BookingFlow";
+import BookingErrorBoundary from "./components/BookingErrorBoundary";
 import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
 
@@ -88,7 +90,9 @@ function MainSite() {
           <Footer />
         </Box>
         <WhatsAppFloat />
-        <BookingFlow />
+        <BookingErrorBoundary>
+          <BookingFlow />
+        </BookingErrorBoundary>
         <OfferModal />
       </Box>
     </BookingProvider>
@@ -97,14 +101,16 @@ function MainSite() {
 
 function App() {
   return (
-    <SiteContentProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<MainSite />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </SiteContentProvider>
+    <FeedbackProvider>
+      <SiteContentProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainSite />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Routes>
+        </BrowserRouter>
+      </SiteContentProvider>
+    </FeedbackProvider>
   );
 }
 

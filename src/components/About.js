@@ -88,7 +88,7 @@ export default function About() {
             sx={{
               background: `linear-gradient(135deg, ${colors.accent} 0%, ${colors.primary} 100%)`,
               borderRadius: "20px",
-              aspectRatio: "3/4",
+              
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -101,7 +101,13 @@ export default function About() {
                 component="img"
                 src={about.photoUrl}
                 alt="Ruchika"
-                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                sx={{
+                  width: "100%",
+                  height: "auto",
+                  
+                  display: "block",
+                  
+                }}
               />
             ) : (
               <Typography sx={{ fontSize: "4.5rem" }}>👩‍⚕️</Typography>
@@ -147,3 +153,5 @@ export default function About() {
     </Box>
   );
 }
+
+

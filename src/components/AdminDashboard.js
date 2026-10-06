@@ -97,6 +97,7 @@ export default function AdminDashboard() {
           <Tab label="Why Choose Me" />
           <Tab label="Services" />
           <Tab label="FAQ" />
+          <Tab label="Plans (Packages)" />
         </Tabs>
 
         {tab === 0 && <BookingsDashboard />}
@@ -194,6 +195,29 @@ export default function AdminDashboard() {
             renderPreview={(item) => ({
               primary: item.question,
               secondary: item.answer,
+            })}
+          />
+        )}
+
+        {tab === 8 && (
+          <AdminListManager
+            apiPath="/api/admin/consultation-plans"
+            itemLabel="Plan"
+            helpText="Pre-configured payment plans that you can select when generating payment links for clients."
+            fields={[
+              { name: "name", label: "Plan Name", required: true, placeholder: "e.g. 1 Month Coaching" },
+              { name: "priceInr", label: "Price (INR)", type: "number", required: true, placeholder: "e.g. 1500" },
+              {
+                name: "description",
+                label: "Description",
+                multiline: true,
+                rows: 3,
+                required: true,
+              },
+            ]}
+            renderPreview={(item) => ({
+              primary: `${item.name} - ₹${item.priceInr}`,
+              secondary: item.description,
             })}
           />
         )}

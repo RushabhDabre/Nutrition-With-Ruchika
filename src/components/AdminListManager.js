@@ -8,6 +8,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import { colors, gradientBrand } from '../theme';
 import { adminFetch } from '../utils/adminAuth';
+import { useFeedback } from '../context/FeedbackContext';
 
 /**
  * Generic CRUD admin screen shared by Help Areas, Why Choose Me, Services,
@@ -34,14 +35,14 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [error, setError] = useState('');
+  const { showSnackbar } = useFeedback();
 
   const load = () => {
     setLoading(true);
     adminFetch(apiPath)
       .then((res) => res.json())
       .then(setItems)
-      .catch((err) => setError(err.message))
+      .catch((err) => showSnackbar(err.message, 'error'))
       .finally(() => setLoading(false));
   };
 
@@ -55,10 +56,10 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
   };
 
   const handleSave = async () => {
-    setError('');
+    
     const missing = fields.find((f) => f.required && !String(form[f.name] || '').trim());
     if (missing) {
-      setError(`${missing.label} is required.`);
+      showSnackbar(`${missing.label} is required.`, 'error');
       return;
     }
     try {
@@ -74,7 +75,7 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
       setFormOpen(false);
       load();
     } catch (err) {
-      setError(err.message);
+      showSnackbar(err.message, 'error');
     }
   };
 
@@ -101,8 +102,7 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
 
   return (
     <Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {helpText && <Alert severity="info" sx={{ mb: 3, fontSize: '0.85rem' }}>{helpText}</Alert>}
+{helpText && <Alert severity="info" sx={{ mb: 3, fontSize: '0.85rem' }}>{helpText}</Alert>}
 
       {!formOpen && (
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNew} sx={{ background: gradientBrand, mb: 3 }}>
@@ -122,13 +122,17 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
               label={f.label}
               size="small"
               fullWidth
+              type={f.type || 'text'}
               multiline={!!f.multiline}
               rows={f.rows}
               placeholder={f.placeholder}
               helperText={f.helperText}
               sx={{ mb: 1.75 }}
               value={form[f.name] || ''}
-              onChange={(e) => handleFieldChange(f.name, e.target.value)}
+              onChange={(e) => {
+                const val = f.type === 'number' ? Number(e.target.value) : e.target.value;
+                handleFieldChange(f.name, val);
+              }}
             />
           ))}
 
@@ -191,3 +195,5 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
     </Box>
   );
 }
+
+
