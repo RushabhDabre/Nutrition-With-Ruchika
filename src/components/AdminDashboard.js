@@ -18,6 +18,7 @@ import BannersManager from "./BannersManager";
 import AdminListManager from "./AdminListManager";
 import { login, logout, getCurrentAdmin } from "../utils/adminAuth";
 import BookingsDashboard from "./BookingsDashboard";
+import AvailabilityManager from "./AvailabilityManager";
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -92,12 +93,13 @@ export default function AdminDashboard() {
           <Tab label="Dashboard" />
           <Tab label="Site Content" />
           <Tab label="Testimonials" />
-          <Tab label="Banners / Ads" />
+          <Tab label="Ads" />
           <Tab label="What I Help With" />
           <Tab label="Why Choose Me" />
           <Tab label="Services" />
           <Tab label="FAQ" />
-          <Tab label="Plans (Packages)" />
+          <Tab label="Plans" />
+          <Tab label="Availability" />
         </Tabs>
 
         {tab === 0 && <BookingsDashboard />}
@@ -221,6 +223,8 @@ export default function AdminDashboard() {
             })}
           />
         )}
+
+        {tab === 9 && <AvailabilityManager />}
       </Container>
     </Box>
   );

@@ -724,8 +724,10 @@ export default function BookingFlow() {
               You're all set, {form.name.split(" ")[0]}!
             </Typography>
             <Typography sx={{ color: colors.textLight, mb: 3 }}>
-              A confirmation email with your meeting link has been sent to{" "}
+              A confirmation email with a calendar invite has been sent to{" "}
               <strong>{form.email}</strong>
+              <br /><br />
+              You will also receive a <b>WhatsApp message</b> with your meeting link exactly 1 hour before the session starts!
             </Typography>
             <Box
               sx={{
@@ -792,3 +794,4 @@ function SummaryRow({ label, value }) {
     </Box>
   );
 }
+

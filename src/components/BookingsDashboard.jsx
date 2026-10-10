@@ -34,6 +34,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import { getAdminBookings, getBookingPaymentLinks, getUnviewedBookingCount, markBookingAsViewed, markPaymentLinkPaid, updateMeetingStatus } from '../utils/bookingsApi.js';
 import { useFeedback } from '../context/FeedbackContext';
 import PlanSelectionDialog from './PlanSelectionDialog.jsx';
@@ -406,6 +407,11 @@ export default function BookingsDashboard() {
                                 <Stack direction="row" spacing={0.75} alignItems="center">
                                   <Typography variant="body2" fontWeight={700}>{booking.name}</Typography>
                                   {!booking.viewed && <Chip size="small" color="error" label="NEW" sx={{ height: 20, fontSize: 10 }} />}
+                                  {booking.whatsappReminderSent && (
+                                    <Tooltip title="WhatsApp Reminder Sent" arrow>
+                                      <WhatsAppIcon sx={{ fontSize: 16, color: '#25D366' }} />
+                                    </Tooltip>
+                                  )}
                                 </Stack>
                                 <Typography variant="caption" color="text.secondary">{booking.city}</Typography>
                               </Box>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
+  Tooltip,
   Box,
   Tabs,
   Tab,
@@ -37,18 +38,7 @@ function isSlotInPast(dateStr, timeStr) {
 
 function shouldShowDate(dateItem) {
   const today = getLocalDateString();
-
-  if (dateItem.date > today) {
-    return true;
-  }
-
-  if (dateItem.date < today) {
-    return false;
-  }
-
-  return dateItem.slots?.some(
-    (slot) => !isSlotInPast(dateItem.date, slot.time),
-  );
+  return dateItem.date >= today;
 }
 
 function DateTabLabel({ dateStr }) {
@@ -100,11 +90,18 @@ function SlotGroup({ label, slots, selectedTime, onSelect, date }) {
         {slots.map((s) => {
           const selected = selectedTime === s.time;
           const slotPast = isSlotInPast(date, s.time);
-          return (
+          const disabled = !s.available || slotPast;
+          let disabledReason = "";
+          if (disabled) {
+            if (slotPast) disabledReason = "This time has already passed";
+            else disabledReason = "Slot is booked or dietitian unavailable";
+          }
+          
+          const btn = (
             <Button
               key={s.time}
               variant={selected ? "contained" : "outlined"}
-              disabled={!s.available || slotPast}
+              disabled={disabled}
               onClick={() => onSelect(s.time)}
               sx={{
                 minWidth: 88,
@@ -118,6 +115,12 @@ function SlotGroup({ label, slots, selectedTime, onSelect, date }) {
               {s.label}
             </Button>
           );
+          
+          return disabled ? (
+            <Tooltip title={disabledReason} key={s.time} arrow placement="top">
+              <span>{btn}</span>
+            </Tooltip>
+          ) : btn;
         })}
       </Box>
     </Box>
@@ -209,10 +212,22 @@ export default function DateTabPicker({ value, onChange, days = 7 }) {
     return <Alert severity="error">{error}</Alert>;
   }
 
+  if (visibleDateList.length === 0) {
+    return (
+      <Alert severity="warning" sx={{ mt: 2 }}>
+        No appointments are possible at this time. Please choose some other time or check back later.
+      </Alert>
+    );
+  }
+
   const currentDay = visibleDateList[tabIndex];
   const groups = currentDay
     ? groupSlots(currentDay.slots)
     : { morning: [], afternoon: [], evening: [] };
+    
+  const hasAvailableSlots = currentDay?.slots?.some(
+    (slot) => slot.available && !isSlotInPast(currentDay.date, slot.time)
+  );
 
   return (
     <Box>
@@ -242,27 +257,39 @@ export default function DateTabPicker({ value, onChange, days = 7 }) {
         ))}
       </Tabs>
 
-      <SlotGroup
-        label="Morning"
-        slots={groups.morning}
-        selectedTime={value.time}
-        onSelect={handleSlotClick}
-        date={currentDay?.date}
-      />
-      <SlotGroup
-        label="Afternoon"
-        slots={groups.afternoon}
-        selectedTime={value.time}
-        onSelect={handleSlotClick}
-        date={currentDay?.date}
-      />
-      <SlotGroup
-        label="Evening"
-        slots={groups.evening}
-        selectedTime={value.time}
-        onSelect={handleSlotClick}
-        date={currentDay?.date}
-      />
+      {!hasAvailableSlots ? (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          No appointments are available on this date. Please select another day.
+        </Alert>
+      ) : (
+        <>
+          <SlotGroup
+            label="Morning"
+            slots={groups.morning}
+            selectedTime={value.time}
+            onSelect={handleSlotClick}
+            date={currentDay?.date}
+          />
+          <SlotGroup
+            label="Afternoon"
+            slots={groups.afternoon}
+            selectedTime={value.time}
+            onSelect={handleSlotClick}
+            date={currentDay?.date}
+          />
+          <SlotGroup
+            label="Evening"
+            slots={groups.evening}
+            selectedTime={value.time}
+            onSelect={handleSlotClick}
+            date={currentDay?.date}
+          />
+        </>
+      )}
     </Box>
   );
 }
+
+
+
+
