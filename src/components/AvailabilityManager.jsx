@@ -1,5 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Tooltip, Box, Card, Typography, IconButton, Tabs, Tab, Switch, FormControlLabel, Checkbox, FormGroup, CircularProgress, Divider
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  Tooltip,
+  Box,
+  Card,
+  Typography,
+  IconButton,
+  Tabs,
+  Tab,
+  Switch,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  CircularProgress,
+  Divider,
+  Button,
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -51,7 +65,7 @@ const isSlotInPast = (dateStr, timeStr) => {
 export default function AvailabilityManager() {
   const { showSnackbar } = useFeedback();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => Math.max(0, new Date().getDate() - 1));
   
   const [overrides, setOverrides] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -101,15 +115,64 @@ export default function AvailabilityManager() {
   const todayISO = toISODate(new Date());
   const isPastDay = isoSelectedDate ? isoSelectedDate < todayISO : false;
   const blockedSlots = overrideForDate && overrideForDate.blockedSlots ? overrideForDate.blockedSlots : [];
+  const tabsContainerRef = useRef(null);
+
+  const scrollToDay = useCallback((dayIndex) => {
+    setTimeout(() => {
+      const tabEl = document.getElementById(`avail-tab-${dayIndex}`);
+      if (tabEl && tabsContainerRef.current) {
+        const containerTop = tabsContainerRef.current.getBoundingClientRect().top;
+        const tabTop = tabEl.getBoundingClientRect().top;
+        const currentScroll = tabsContainerRef.current.scrollTop;
+        tabsContainerRef.current.scrollTo({
+          top: Math.max(0, currentScroll + (tabTop - containerTop)),
+          behavior: 'smooth'
+        });
+      }
+    }, 120);
+  }, []);
+
+  // Auto-scroll so today's date is pinned to the top of the list
+  useEffect(() => {
+    const now = new Date();
+    if (currentDate.getFullYear() === now.getFullYear() && currentDate.getMonth() === now.getMonth()) {
+      scrollToDay(now.getDate() - 1);
+    } else {
+      scrollToDay(0);
+    }
+  }, [currentDate, scrollToDay]);
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-    setSelectedDayIndex(0);
+    const nextDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    setCurrentDate(nextDate);
+    const now = new Date();
+    if (nextDate.getFullYear() === now.getFullYear() && nextDate.getMonth() === now.getMonth()) {
+      setSelectedDayIndex(now.getDate() - 1);
+      scrollToDay(now.getDate() - 1);
+    } else {
+      setSelectedDayIndex(0);
+      scrollToDay(0);
+    }
   };
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-    setSelectedDayIndex(0);
+    const nextDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    setCurrentDate(nextDate);
+    const now = new Date();
+    if (nextDate.getFullYear() === now.getFullYear() && nextDate.getMonth() === now.getMonth()) {
+      setSelectedDayIndex(now.getDate() - 1);
+      scrollToDay(now.getDate() - 1);
+    } else {
+      setSelectedDayIndex(0);
+      scrollToDay(0);
+    }
+  };
+
+  const handleGoToToday = () => {
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDayIndex(now.getDate() - 1);
+    scrollToDay(now.getDate() - 1);
   };
 
   const handleDayToggle = async (e) => {
@@ -166,16 +229,30 @@ export default function AvailabilityManager() {
     <Card sx={{ borderRadius: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       {/* Month Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-        <IconButton onClick={handlePrevMonth}><ChevronLeftIcon /></IconButton>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <IconButton onClick={handlePrevMonth}><ChevronLeftIcon /></IconButton>
+          <IconButton onClick={handleNextMonth}><ChevronRightIcon /></IconButton>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleGoToToday}
+            sx={{ ml: 1, textTransform: 'none', fontWeight: 700, borderRadius: 2 }}
+          >
+            Today
+          </Button>
+        </Box>
         <Typography variant="h6" fontWeight="700">
           {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
         </Typography>
-        <IconButton onClick={handleNextMonth}><ChevronRightIcon /></IconButton>
+        <Box sx={{ width: 100 }} />
       </Box>
 
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, minHeight: 400 }}>
         {/* Left Pane - Vertical Tabs */}
-        <Box sx={{ borderRight: { md: '1px solid #e2e8f0' }, borderBottom: { xs: '1px solid #e2e8f0', md: 'none' }, minWidth: 150, maxHeight: 500, overflowY: 'auto' }}>
+        <Box 
+          ref={tabsContainerRef}
+          sx={{ borderRight: { md: '1px solid #e2e8f0' }, borderBottom: { xs: '1px solid #e2e8f0', md: 'none' }, minWidth: 160, maxHeight: 500, overflowY: 'auto', position: 'relative' }}
+        >
           <Tabs
             orientation="vertical"
             variant="scrollable"
@@ -187,16 +264,26 @@ export default function AvailabilityManager() {
               const iso = toISODate(day);
               const isBlocked = overrides.some(o => o.date === iso && o.fullDayBlocked);
               const hasBlockedSlots = overrides.some(o => o.date === iso && !o.fullDayBlocked && o.blockedSlots.length > 0);
+              const isToday = iso === todayISO;
               
               let indicator = '';
               if (isBlocked) indicator = ' (OFF)';
               else if (hasBlockedSlots) indicator = ' (Modified)';
+              if (isToday) indicator = ' • Today' + indicator;
 
               return (
                 <Tab 
+                  id={`avail-tab-${idx}`}
                   key={iso} 
                   label={`${day.getDate()} ${day.toLocaleString('default', { weekday: 'short' })}${indicator}`}
-                  sx={{ alignItems: 'flex-start', py: 1.5, textTransform: 'none', fontWeight: 600, color: isBlocked ? 'error.main' : 'inherit' }}
+                  sx={{
+                    alignItems: 'flex-start',
+                    py: 1.5,
+                    textTransform: 'none',
+                    fontWeight: isToday ? 800 : 600,
+                    color: isBlocked ? 'error.main' : isToday ? 'primary.main' : 'inherit',
+                    bgcolor: isToday && selectedDayIndex === idx ? 'rgba(79, 70, 229, 0.08)' : 'inherit',
+                  }}
                 />
               );
             })}

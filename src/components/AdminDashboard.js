@@ -19,6 +19,7 @@ import AdminListManager from "./AdminListManager";
 import { login, logout, getCurrentAdmin } from "../utils/adminAuth";
 import BookingsDashboard from "./BookingsDashboard";
 import AvailabilityManager from "./AvailabilityManager";
+// import ProgramSalesDashboard from "./ProgramSalesDashboard";
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
@@ -100,6 +101,7 @@ export default function AdminDashboard() {
           <Tab label="FAQ" />
           <Tab label="Plans" />
           <Tab label="Availability" />
+          {/* <Tab label="Program Sales" /> */}
         </Tabs>
 
         {tab === 0 && <BookingsDashboard />}
@@ -225,6 +227,7 @@ export default function AdminDashboard() {
         )}
 
         {tab === 9 && <AvailabilityManager />}
+        {/* {tab === 10 && <ProgramSalesDashboard />} */}
       </Container>
     </Box>
   );
