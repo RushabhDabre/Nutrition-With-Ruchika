@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Dialog, Box, IconButton, Fab } from "@mui/material";
+import { Dialog, Box, IconButton, Fab, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { getLocalDateString } from "../helper/dateHelper";
-import { colors } from "../theme";
+import { colors, gradientBrand } from "../theme";
 import { apiBaseUrl } from "../data/siteData";
+import ProgramEnrollModal from "./ProgramEnrollModal";
 
 const AUTO_OPEN_DELAY_MS = 1500;
 
@@ -31,6 +32,7 @@ export default function OfferModal() {
   const [offer, setOffer] = useState(null);
   const [open, setOpen] = useState(false);
   const [everShown, setEverShown] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
 
   useEffect(() => {
     let timer;
@@ -114,19 +116,112 @@ export default function OfferModal() {
             component="img"
             src={offer.imageUrl}
             alt={offer.title || "Offer"}
+            onClick={() => {
+              if (offer.paymentRequired) {
+                setEnrollOpen(true);
+              } else if (offer.linkUrl) {
+                window.open(offer.linkUrl, "_blank");
+              }
+            }}
             sx={{
               display: "block",
               width: "100%",
               height: "auto",
               maxWidth: "100%",
-              maxHeight: "85vh",
+              maxHeight: "80vh",
               objectFit: "contain",
               borderRadius: "16px",
               boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              cursor:
+                offer.paymentRequired || offer.linkUrl ? "pointer" : "default",
             }}
           />
+
+          {offer.paymentRequired ? (
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "calc(100% - 32px)",
+                maxWidth: 340,
+                textAlign: "center",
+              }}
+            >
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={() => setEnrollOpen(true)}
+                sx={{
+                  background: gradientBrand,
+                  color: colors.white,
+                  fontWeight: 800,
+                  fontSize: "1rem",
+                  py: 1.2,
+                  borderRadius: "30px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                  textTransform: "none",
+                  "&:hover": { opacity: 0.95, transform: "scale(1.02)" },
+                }}
+              >
+                {offer.buttonText ||
+                  `Enroll Now${offer.priceInr ? ` · ₹${offer.priceInr}` : ""}`}
+              </Button>
+            </Box>
+          ) : offer.linkUrl ? (
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 16,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "calc(100% - 32px)",
+                maxWidth: 340,
+                textAlign: "center",
+              }}
+            >
+              <Button
+                component="a"
+                href={offer.linkUrl}
+                target="_blank"
+                rel="noreferrer"
+                variant="contained"
+                size="large"
+                fullWidth
+                sx={{
+                  background: gradientBrand,
+                  color: colors.white,
+                  fontWeight: 800,
+                  fontSize: "1rem",
+                  py: 1.2,
+                  borderRadius: "30px",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                  textTransform: "none",
+                }}
+              >
+                {offer.buttonText || "Learn More"}
+              </Button>
+            </Box>
+          ) : null}
         </Box>
       </Dialog>
+
+      {offer.paymentRequired && (
+        <ProgramEnrollModal
+          open={enrollOpen}
+          onClose={() => setEnrollOpen(false)}
+          plan={{
+            id: offer.id,
+            isBanner: true,
+            bannerId: offer.id,
+            name: offer.title,
+            priceInr: offer.priceInr,
+            description: offer.subtitle,
+          }}
+        />
+      )}
 
       {everShown && !open && (
         <Fab

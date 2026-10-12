@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Box, Container, Typography, Button, Stack, Fab } from "@mui/material";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import InstagramIcon from "@mui/icons-material/Instagram";
@@ -255,42 +256,50 @@ export function Footer() {
             Nutrition with Ruchika | Nutritionist & Dietitian ©{" "}
             {new Date().getFullYear()}
           </Typography>
-          <Box>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 } }}>
             <Box
-              component="a"
-              href="/privacy-policy"
+              component={Link}
+              to="/privacy-policy"
               sx={{
                 color: "#94a3b8",
                 textDecoration: "none",
-                ml: 2,
                 "&:hover": { color: colors.primary },
               }}
             >
               Privacy Policy
             </Box>
             <Box
-              component="a"
-              href="/disclaimer"
+              component={Link}
+              to="/terms-and-conditions"
               sx={{
                 color: "#94a3b8",
                 textDecoration: "none",
-                ml: 2,
-                "&:hover": { color: colors.primary },
-              }}
-            >
-              Disclaimer
-            </Box>
-            <Box
-              component="a"
-              href="/terms-and-conditions"
-              sx={{
-                color: "#94a3b8",
-                textDecoration: "none",
-                ml: 2,
                 "&:hover": { color: colors.primary },
               }}
             >
               Terms & Conditions
+            </Box>
+            <Box
+              component={Link}
+              to="/refund-policy"
+              sx={{
+                color: "#94a3b8",
+                textDecoration: "none",
+                "&:hover": { color: colors.primary },
+              }}
+            >
+              Refund Policy
+            </Box>
+            <Box
+              component={Link}
+              to="/disclaimer"
+              sx={{
+                color: "#94a3b8",
+                textDecoration: "none",
+                "&:hover": { color: colors.primary },
+              }}
+            >
+              Disclaimer
             </Box>
           </Box>
         </Box>

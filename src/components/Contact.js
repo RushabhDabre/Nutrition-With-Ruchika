@@ -7,7 +7,7 @@ import InstagramIcon from '@mui/icons-material/Instagram';
 import EmailIcon from '@mui/icons-material/Email';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { colors, gradientBrand, gradientPrimary } from '../theme';
-import { concernOptions } from '../data/siteData';
+import { concernOptions, apiBaseUrl } from '../data/siteData';
 import { useSiteContent } from '../context/SiteContentContext';
 import SectionTitle from './SectionTitle';
 
@@ -49,16 +49,32 @@ export default function Contact() {
   const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
 
   const [form, setForm] = useState(initialForm);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: connect to your email service (EmailJS, Formspree, or your own backend)
-    console.log('Consultation request:', form);
-    setSubmitted(true);
-    setForm(initialForm);
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to send inquiry. Please reach out via WhatsApp directly.');
+      }
+      setSubmitted(true);
+      setForm(initialForm);
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please message me on WhatsApp.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,7 +126,13 @@ export default function Contact() {
 
             {submitted && (
               <Alert severity="success" sx={{ mb: 2.5 }}>
-                Thank you! I'll get back to you within 24 hours.
+                Thank you! I've received your inquiry and will reach out to you within 24 hours.
+              </Alert>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2.5 }}>
+                {error}
               </Alert>
             )}
 
@@ -143,9 +165,10 @@ export default function Contact() {
               />
               <Button
                 type="submit" fullWidth size="large" variant="contained"
+                disabled={loading}
                 sx={{ background: gradientBrand, py: 1.6, fontSize: '1rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
               >
-                Request Consultation →
+                {loading ? 'Sending Request...' : 'Request Consultation →'}
               </Button>
             </Box>
           </Paper>

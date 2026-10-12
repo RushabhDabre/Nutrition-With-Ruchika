@@ -21,6 +21,7 @@ import BookingFlow from "./components/BookingFlow";
 import BookingErrorBoundary from "./components/BookingErrorBoundary";
 import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
+import LegalPage from "./components/LegalPage";
 
 function MainSite() {
   // Header + BannerStrip are combined into a single fixed stack (banner on
@@ -107,6 +108,11 @@ function App() {
           <Routes>
             <Route path="/" element={<MainSite />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/privacy-policy" element={<LegalPage type="privacy" />} />
+            <Route path="/terms-and-conditions" element={<LegalPage type="terms" />} />
+            <Route path="/refund-policy" element={<LegalPage type="refund" />} />
+            <Route path="/cancellation-refund-policy" element={<LegalPage type="refund" />} />
+            <Route path="/disclaimer" element={<LegalPage type="disclaimer" />} />
           </Routes>
         </BrowserRouter>
       </SiteContentProvider>

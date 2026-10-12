@@ -107,3 +107,18 @@ export async function markPaymentLinkPaid(paymentId) {
     throw new Error("Failed to mark as paid");
   }
 }
+
+export async function updateClientWorkspace(bookingId, { driveFolderUrl, clinicalNotes }) {
+  const res = await adminFetch(`/api/admin/bookings/${bookingId}/client-workspace`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ driveFolderUrl, clinicalNotes }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to update client workspace");
+  }
+
+  return res.json();
+}

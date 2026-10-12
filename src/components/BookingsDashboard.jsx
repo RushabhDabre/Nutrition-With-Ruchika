@@ -34,7 +34,29 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
-import { getAdminBookings, getBookingPaymentLinks, getUnviewedBookingCount, markBookingAsViewed, markPaymentLinkPaid, updateMeetingStatus } from '../utils/bookingsApi.js';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import FolderSharedIcon from '@mui/icons-material/FolderShared';
+import LaunchIcon from '@mui/icons-material/Launch';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import {
+  getAdminBookings,
+  getBookingPaymentLinks,
+  getUnviewedBookingCount,
+  markBookingAsViewed,
+  markPaymentLinkPaid,
+  updateMeetingStatus,
+  updateClientWorkspace,
+} from '../utils/bookingsApi.js';
+import {
+  getBookingDocuments,
+  uploadBookingDocument,
+  deleteBookingDocument,
+  getDocumentViewUrl,
+} from '../utils/clientDocumentsApi.js';
 import { useFeedback } from '../context/FeedbackContext';
 import PlanSelectionDialog from './PlanSelectionDialog.jsx';
 
@@ -87,6 +109,36 @@ function meetingChipProps(status) {
   }
 }
 
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function getDocumentTypeProps(type) {
+  switch (type) {
+    case 'DIET_CHART':
+      return { label: 'Diet Chart', color: 'success' };
+    case 'LAB_REPORT':
+      return { label: 'Lab Report', color: 'primary' };
+    case 'PRESCRIPTION':
+      return { label: 'Prescription', color: 'warning' };
+    case 'MEAL_PHOTO':
+      return { label: 'Meal Photo', color: 'secondary' };
+    default:
+      return { label: 'General', color: 'default' };
+  }
+}
+
+function getFileIcon(fileType) {
+  if (!fileType) return <InsertDriveFileOutlinedIcon fontSize="small" sx={{ color: '#64748b' }} />;
+  if (fileType.includes('pdf')) return <PictureAsPdfIcon fontSize="small" sx={{ color: '#ef4444' }} />;
+  if (fileType.includes('image')) return <ImageOutlinedIcon fontSize="small" sx={{ color: '#3b82f6' }} />;
+  return <InsertDriveFileOutlinedIcon fontSize="small" sx={{ color: '#64748b' }} />;
+}
+
 function DetailRow({ label, value }) {
   return (
     <Stack direction="row" spacing={2} sx={{ py: 1 }}>
@@ -106,6 +158,15 @@ export default function BookingsDashboard() {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedPaymentLinks, setSelectedPaymentLinks] = useState([]);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [workspaceDriveUrl, setWorkspaceDriveUrl] = useState('');
+  const [workspaceNotes, setWorkspaceNotes] = useState('');
+  const [workspaceSaving, setWorkspaceSaving] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [selectedDocType, setSelectedDocType] = useState('DIET_CHART');
+  const [docNotes, setDocNotes] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
   const [search, setSearch] = useState('');
   const [viewFilter, setViewFilter] = useState('all');
   const [loading, setLoading] = useState(true);
@@ -204,7 +265,18 @@ export default function BookingsDashboard() {
 
   const openBooking = async (booking) => {
     setSelectedBooking(booking);
+    setWorkspaceDriveUrl(booking?.driveFolderUrl || '');
+    setWorkspaceNotes(booking?.clinicalNotes || '');
     setSelectedPaymentLinks([]);
+    setSelectedFile(null);
+    setDocNotes('');
+    setDocuments([]);
+
+    setLoadingDocs(true);
+    getBookingDocuments(booking.id)
+      .then((docs) => setDocuments(Array.isArray(docs) ? docs : []))
+      .catch(() => setDocuments([]))
+      .finally(() => setLoadingDocs(false));
 
     try {
       const links = await getBookingPaymentLinks(booking.id);
@@ -224,6 +296,51 @@ export default function BookingsDashboard() {
           setSelectedBooking(null);
         }
       }
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!selectedFile || !selectedBooking) {
+      showSnackbar('Please select a file to upload.', 'warning');
+      return;
+    }
+
+    setUploadingDoc(true);
+    try {
+      const newDoc = await uploadBookingDocument(
+        selectedBooking.id,
+        selectedFile,
+        selectedDocType,
+        docNotes
+      );
+      setDocuments((prev) => [newDoc, ...prev]);
+      setSelectedFile(null);
+      setDocNotes('');
+      const fileInput = document.getElementById('client-vault-file-input');
+      if (fileInput) fileInput.value = '';
+      showSnackbar('Document uploaded successfully to client vault!', 'success');
+    } catch (err) {
+      showSnackbar(err.message || 'Failed to upload document', 'error');
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const handleDeleteDocument = async (doc) => {
+    const confirmed = await showConfirm({
+      title: 'Delete Document?',
+      message: `Are you sure you want to delete "${doc.fileName}"? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: 'Delete',
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteBookingDocument(doc.id);
+      setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+      showSnackbar('Document deleted successfully', 'success');
+    } catch (err) {
+      showSnackbar(err.message || 'Failed to delete document', 'error');
     }
   };
 
@@ -406,6 +523,11 @@ export default function BookingsDashboard() {
                                 <Stack direction="row" spacing={0.75} alignItems="center">
                                   <Typography variant="body2" fontWeight={700}>{booking.name}</Typography>
                                   {!booking.viewed && <Chip size="small" color="error" label="NEW" sx={{ height: 20, fontSize: 10 }} />}
+                                  {booking.whatsappReminderSent && (
+                                    <Tooltip title="WhatsApp Reminder Sent" arrow>
+                                      <WhatsAppIcon sx={{ fontSize: 16, color: '#25D366' }} />
+                                    </Tooltip>
+                                  )}
                                 </Stack>
                                 <Typography variant="caption" color="text.secondary">{booking.city}</Typography>
                               </Box>
@@ -431,6 +553,20 @@ export default function BookingsDashboard() {
                               <Tooltip title="View details">
                                 <IconButton size="small" onClick={() => openBooking(booking)}><VisibilityOutlinedIcon fontSize="small" /></IconButton>
                               </Tooltip>
+                              {booking.driveFolderUrl && (
+                                <Tooltip title="Open Client Google Drive Folder">
+                                  <IconButton
+                                    size="small"
+                                    component="a"
+                                    href={booking.driveFolderUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    sx={{ color: '#4f46e5' }}
+                                  >
+                                    <FolderSharedIcon fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
                               <Tooltip title={booking.meetingLink ? 'Join meeting' : 'Meeting link not configured'}>
                                 <span>
                                   <IconButton size="small" disabled={!booking.meetingLink} onClick={() => joinMeeting(booking)}><VideoCallIcon fontSize="small" /></IconButton>
@@ -465,7 +601,7 @@ export default function BookingsDashboard() {
         </Card>
       </Stack>
 
-      <Dialog open={Boolean(selectedBooking)} onClose={() => setSelectedBooking(null)} fullWidth maxWidth="sm">
+      <Dialog open={Boolean(selectedBooking)} onClose={() => setSelectedBooking(null)} fullWidth maxWidth="md">
         <DialogTitle>Booking details</DialogTitle>
         <DialogContent dividers>
           {selectedBooking && (
@@ -512,6 +648,260 @@ export default function BookingsDashboard() {
                     )}
                   </>
                 )}
+              </Box>
+
+              {/* Client Workspace & Document Vault */}
+              <Box sx={{ py: 2, bgcolor: '#f8fafc', p: 2.5, borderRadius: 2.5, border: '1px solid #e2e8f0' }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FolderSharedIcon sx={{ fontSize: 20, color: '#4f46e5' }} />
+                    <Typography variant="subtitle2" fontWeight={700}>
+                      Client Vault & Documents
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={`${documents.length} Files`}
+                      color="primary"
+                      variant="outlined"
+                      sx={{ height: 20, fontSize: '0.72rem', fontWeight: 600 }}
+                    />
+                  </Stack>
+                  {selectedBooking.driveFolderUrl && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<LaunchIcon />}
+                      href={selectedBooking.driveFolderUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Drive
+                    </Button>
+                  )}
+                </Stack>
+
+                {/* Direct File Uploader Box */}
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    bgcolor: '#ffffff',
+                    borderRadius: 2,
+                    borderStyle: 'dashed',
+                    borderColor: '#cbd5e1'
+                  }}
+                >
+                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Upload New Client Document
+                  </Typography>
+
+                  <Stack spacing={1.5}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                      <TextField
+                        select
+                        size="small"
+                        label="Document Type"
+                        value={selectedDocType}
+                        onChange={(e) => setSelectedDocType(e.target.value)}
+                        sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}
+                      >
+                        <MenuItem value="DIET_CHART">🥗 Diet Chart</MenuItem>
+                        <MenuItem value="LAB_REPORT">🩸 Lab / Blood Report</MenuItem>
+                        <MenuItem value="PRESCRIPTION">💊 Prescription</MenuItem>
+                        <MenuItem value="MEAL_PHOTO">📸 Meal Photo</MenuItem>
+                        <MenuItem value="OTHER">📄 Other Document</MenuItem>
+                      </TextField>
+
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        size="small"
+                        startIcon={<CloudUploadIcon />}
+                        sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0, height: 40 }}
+                      >
+                        {selectedFile ? 'Change File' : 'Choose File'}
+                        <input
+                          id="client-vault-file-input"
+                          type="file"
+                          hidden
+                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setSelectedFile(e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </Button>
+
+                      {selectedFile && (
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                          {selectedFile.name} ({formatBytes(selectedFile.size)})
+                        </Typography>
+                      )}
+                    </Stack>
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Note (Optional)"
+                        placeholder="e.g. Week 1 High Protein Diet Plan"
+                        value={docNotes}
+                        onChange={(e) => setDocNotes(e.target.value)}
+                      />
+
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={!selectedFile || uploadingDoc}
+                        onClick={handleUploadDocument}
+                        sx={{ textTransform: 'none', fontWeight: 700, px: 2.5, height: 40, flexShrink: 0 }}
+                      >
+                        {uploadingDoc ? <CircularProgress size={20} color="inherit" /> : 'Upload to Vault'}
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </Paper>
+
+                {/* Uploaded Documents List */}
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Uploaded Documents
+                </Typography>
+
+                {loadingDocs ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                    <CircularProgress size={24} />
+                  </Box>
+                ) : documents.length === 0 ? (
+                  <Paper variant="outlined" sx={{ p: 2, textAlign: 'center', bgcolor: '#ffffff', mb: 2, borderRadius: 2 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No documents uploaded yet. Upload a diet chart or blood test report above.
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Stack spacing={1} sx={{ mb: 2.5 }}>
+                    {documents.map((doc) => {
+                      const typeProps = getDocumentTypeProps(doc.documentType);
+                      return (
+                        <Paper
+                          key={doc.id}
+                          variant="outlined"
+                          sx={{
+                            p: 1.5,
+                            bgcolor: '#ffffff',
+                            borderRadius: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 1.5,
+                          }}
+                        >
+                          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0, flexGrow: 1 }}>
+                            {getFileIcon(doc.fileType)}
+                            <Box sx={{ minWidth: 0 }}>
+                              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                                <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: { xs: 140, sm: 260 } }}>
+                                  {doc.fileName}
+                                </Typography>
+                                <Chip
+                                  size="small"
+                                  label={typeProps.label}
+                                  color={typeProps.color}
+                                  sx={{ height: 20, fontSize: '0.7rem', fontWeight: 600 }}
+                                />
+                              </Stack>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {formatBytes(doc.fileSizeBytes)} • {formatDate(doc.createdAt ? doc.createdAt.substring(0, 10) : '')}
+                                {doc.notes && ` • "${doc.notes}"`}
+                              </Typography>
+                            </Box>
+                          </Stack>
+
+                          <Stack direction="row" spacing={0.5} flexShrink={0}>
+                            <Tooltip title="View / Download Document">
+                              <IconButton
+                                size="small"
+                                component="a"
+                                href={getDocumentViewUrl(doc)}
+                                target="_blank"
+                                rel="noreferrer"
+                                sx={{ color: '#4f46e5' }}
+                              >
+                                <LaunchIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete Document">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteDocument(doc)}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </Paper>
+                      );
+                    })}
+                  </Stack>
+                )}
+
+                {/* Clinical Notes & Legacy External Drive Link */}
+                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Clinical Notes & External Drive (Optional)
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    multiline
+                    rows={3}
+                    label="Clinical & Consultation Notes"
+                    placeholder="Health history, food allergies, dietary restrictions, follow-up progress..."
+                    value={workspaceNotes}
+                    onChange={(e) => setWorkspaceNotes(e.target.value)}
+                  />
+
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="External Google Drive Folder URL (Optional)"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    value={workspaceDriveUrl}
+                    onChange={(e) => setWorkspaceDriveUrl(e.target.value)}
+                    helperText="Optional external link for existing folders"
+                  />
+
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disabled={workspaceSaving}
+                      onClick={async () => {
+                        try {
+                          setWorkspaceSaving(true);
+                          const updated = await updateClientWorkspace(selectedBooking.id, {
+                            driveFolderUrl: workspaceDriveUrl,
+                            clinicalNotes: workspaceNotes,
+                          });
+                          setSelectedBooking(updated);
+                          setBookings((prev) =>
+                            prev.map((b) => (b.id === updated.id ? updated : b))
+                          );
+                          showSnackbar('Client workspace saved successfully!', 'success');
+                        } catch (err) {
+                          showSnackbar(err.message || 'Failed to save workspace', 'error');
+                        } finally {
+                          setWorkspaceSaving(false);
+                        }
+                      }}
+                    >
+                      {workspaceSaving ? 'Saving...' : 'Save Workspace Notes'}
+                    </Button>
+                  </Box>
+                </Stack>
               </Box>
 
               <Box sx={{ py: 1.5 }}>
