@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Container,
@@ -8,8 +8,12 @@ import {
   Button,
   AppBar,
   Toolbar,
+  Chip,
+  Stack,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import BadgeIcon from "@mui/icons-material/Badge";
 import { colors } from "../theme";
 import AdminLogin from "./AdminLogin";
 import SiteContentEditor from "./SiteContentEditor";
@@ -19,20 +23,28 @@ import AdminListManager from "./AdminListManager";
 import { login, logout, getCurrentAdmin } from "../utils/adminAuth";
 import BookingsDashboard from "./BookingsDashboard";
 import AvailabilityManager from "./AvailabilityManager";
-// import ProgramSalesDashboard from "./ProgramSalesDashboard";
+import EmployeeManager from "./EmployeeManager";
 
 export default function AdminDashboard() {
   const [authed, setAuthed] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
     getCurrentAdmin()
       .then((admin) => {
-        setAuthed(Boolean(admin?.authenticated));
+        if (admin?.authenticated) {
+          setAuthed(true);
+          setCurrentUser(admin);
+        } else {
+          setAuthed(false);
+          setCurrentUser(null);
+        }
       })
       .catch(() => {
         setAuthed(false);
+        setCurrentUser(null);
       })
       .finally(() => {
         setCheckingSession(false);
@@ -43,7 +55,10 @@ export default function AdminDashboard() {
     const ok = await login(username, password);
 
     if (ok) {
+      const admin = await getCurrentAdmin().catch(() => null);
+      setCurrentUser(admin);
       setAuthed(true);
+      setTab(0);
     }
 
     return ok;
@@ -52,64 +67,59 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await logout();
     setAuthed(false);
+    setCurrentUser(null);
   };
 
-  if (checkingSession) return null;
-  if (!authed) return <AdminLogin onLogin={handleLogin} />;
+  const isSuperAdmin = currentUser?.role === "SUPER_ADMIN";
+  const userPerms = useMemo(
+    () => (Array.isArray(currentUser?.permissions) ? currentUser.permissions : []),
+    [currentUser?.permissions]
+  );
 
-  return (
-    <Box sx={{ minHeight: "100vh", bgcolor: colors.bgLight }}>
-      <AppBar
-        position="static"
-        elevation={0}
-        sx={{
-          bgcolor: colors.white,
-          color: colors.textDark,
-          borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
-        <Toolbar>
-          <Typography sx={{ fontWeight: 800, flexGrow: 1 }}>
-            Nutrition with Ruchika — Admin
-          </Typography>
-          <Button
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-            sx={{ color: colors.textLight }}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
+  const visibleTabs = useMemo(() => {
+    if (!currentUser) return [];
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Tabs
-          value={tab}
-          onChange={(e, v) => setTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
-          sx={{ mb: 4 }}
-          TabIndicatorProps={{ style: { background: colors.primary } }}
-        >
-          <Tab label="Dashboard" />
-          <Tab label="Site Content" />
-          <Tab label="Testimonials" />
-          <Tab label="Ads" />
-          <Tab label="What I Help With" />
-          <Tab label="Why Choose Me" />
-          <Tab label="Services" />
-          <Tab label="FAQ" />
-          <Tab label="Plans" />
-          <Tab label="Availability" />
-          {/* <Tab label="Program Sales" /> */}
-        </Tabs>
-
-        {tab === 0 && <BookingsDashboard />}
-        {tab === 1 && <SiteContentEditor />}
-        {tab === 2 && <TestimonialsManager />}
-        {tab === 3 && <BannersManager />}
-
-        {tab === 4 && (
+    const tabDefinitions = [
+      {
+        id: "bookings",
+        label: isSuperAdmin ? "Dashboard" : "My Clients",
+        permission: "VIEW_BOOKINGS",
+        superAdminOnly: false,
+        component: <BookingsDashboard userRole={currentUser.role} />,
+      },
+      {
+        id: "employees",
+        label: "Employees",
+        superAdminOnly: true,
+        component: <EmployeeManager />,
+      },
+      {
+        id: "site-content",
+        label: "Site Content",
+        permission: "MANAGE_CMS",
+        superAdminOnly: false,
+        component: <SiteContentEditor />,
+      },
+      {
+        id: "testimonials",
+        label: "Testimonials",
+        permission: "MANAGE_TESTIMONIALS",
+        superAdminOnly: false,
+        component: <TestimonialsManager />,
+      },
+      {
+        id: "banners",
+        label: "Ads",
+        permission: "MANAGE_BANNERS",
+        superAdminOnly: false,
+        component: <BannersManager />,
+      },
+      {
+        id: "help-areas",
+        label: "What I Help With",
+        permission: "MANAGE_HELP_AREAS",
+        superAdminOnly: false,
+        component: (
           <AdminListManager
             apiPath="/api/admin/help-areas"
             itemLabel="Help Area"
@@ -127,9 +137,14 @@ export default function AdminDashboard() {
               primary: `${item.icon || ""} ${item.name}`.trim(),
             })}
           />
-        )}
-
-        {tab === 5 && (
+        ),
+      },
+      {
+        id: "why-choose-me",
+        label: "Why Choose Me",
+        permission: "MANAGE_WHY_CHOOSE_ME",
+        superAdminOnly: false,
+        component: (
           <AdminListManager
             apiPath="/api/admin/why-choose-me"
             itemLabel="Reason"
@@ -150,9 +165,14 @@ export default function AdminDashboard() {
               secondary: item.text,
             })}
           />
-        )}
-
-        {tab === 6 && (
+        ),
+      },
+      {
+        id: "services",
+        label: "Services",
+        permission: "MANAGE_SERVICES",
+        superAdminOnly: false,
+        component: (
           <AdminListManager
             apiPath="/api/admin/services"
             itemLabel="Service"
@@ -179,9 +199,14 @@ export default function AdminDashboard() {
               secondary: item.tags,
             })}
           />
-        )}
-
-        {tab === 7 && (
+        ),
+      },
+      {
+        id: "faqs",
+        label: "FAQ",
+        permission: "MANAGE_FAQ",
+        superAdminOnly: false,
+        component: (
           <AdminListManager
             apiPath="/api/admin/faqs"
             itemLabel="FAQ"
@@ -201,16 +226,31 @@ export default function AdminDashboard() {
               secondary: item.answer,
             })}
           />
-        )}
-
-        {tab === 8 && (
+        ),
+      },
+      {
+        id: "plans",
+        label: "Plans",
+        superAdminOnly: true,
+        component: (
           <AdminListManager
             apiPath="/api/admin/consultation-plans"
             itemLabel="Plan"
             helpText="Pre-configured payment plans that you can select when generating payment links for clients."
             fields={[
-              { name: "name", label: "Plan Name", required: true, placeholder: "e.g. 1 Month Coaching" },
-              { name: "priceInr", label: "Price (INR)", type: "number", required: true, placeholder: "e.g. 1500" },
+              {
+                name: "name",
+                label: "Plan Name",
+                required: true,
+                placeholder: "e.g. 1 Month Coaching",
+              },
+              {
+                name: "priceInr",
+                label: "Price (INR)",
+                type: "number",
+                required: true,
+                placeholder: "e.g. 1500",
+              },
               {
                 name: "description",
                 label: "Description",
@@ -224,10 +264,105 @@ export default function AdminDashboard() {
               secondary: item.description,
             })}
           />
-        )}
+        ),
+      },
+      {
+        id: "availability",
+        label: "Availability",
+        permission: "MANAGE_AVAILABILITY",
+        superAdminOnly: false,
+        component: <AvailabilityManager />,
+      },
+    ];
 
-        {tab === 9 && <AvailabilityManager />}
-        {/* {tab === 10 && <ProgramSalesDashboard />} */}
+    return tabDefinitions.filter((t) => {
+      if (isSuperAdmin) return true;
+      if (t.superAdminOnly) return false;
+      return userPerms.includes(t.permission);
+    });
+  }, [currentUser, isSuperAdmin, userPerms]);
+
+  if (checkingSession) return null;
+  if (!authed) return <AdminLogin onLogin={handleLogin} />;
+
+  const activeTabIndex = tab >= visibleTabs.length ? 0 : tab;
+
+  return (
+    <Box sx={{ minHeight: "100vh", bgcolor: colors.bgLight }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        sx={{
+          bgcolor: colors.white,
+          color: colors.textDark,
+          borderBottom: `1px solid ${colors.border}`,
+        }}
+      >
+        <Toolbar>
+          <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Typography sx={{ fontWeight: 800 }}>
+              Nutrition with Ruchika — {isSuperAdmin ? "Admin" : "Staff Portal"}
+            </Typography>
+            <Chip
+              icon={
+                isSuperAdmin ? (
+                  <AdminPanelSettingsIcon sx={{ fontSize: 16 }} />
+                ) : (
+                  <BadgeIcon sx={{ fontSize: 16 }} />
+                )
+              }
+              label={
+                isSuperAdmin
+                  ? `${currentUser?.displayName || "Ruchika"} (Admin)`
+                  : `${currentUser?.displayName || currentUser?.username} (Staff)`
+              }
+              size="small"
+              sx={{
+                bgcolor: isSuperAdmin ? "#e0e7ff" : "#ecfdf5",
+                color: isSuperAdmin ? "#4338ca" : "#047857",
+                fontWeight: 700,
+                display: { xs: "none", sm: "inline-flex" },
+              }}
+            />
+          </Box>
+
+          <Button
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+            sx={{ color: colors.textLight }}
+          >
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
+
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        {visibleTabs.length === 0 ? (
+          <Box sx={{ py: 8, textAlign: "center" }}>
+            <Typography variant="h6" fontWeight={700}>
+              Welcome, {currentUser?.displayName || "Staff Member"}!
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              You do not have access to any dashboard tabs yet. Please ask Ruchika (Admin) to assign you permissions or clients.
+            </Typography>
+          </Box>
+        ) : (
+          <Stack spacing={4}>
+            <Tabs
+              value={activeTabIndex}
+              onChange={(e, v) => setTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              TabIndicatorProps={{ style: { background: colors.primary } }}
+            >
+              {visibleTabs.map((t) => (
+                <Tab key={t.id} label={t.label} />
+              ))}
+            </Tabs>
+
+            {visibleTabs[activeTabIndex]?.component}
+          </Stack>
+        )}
       </Container>
     </Box>
   );

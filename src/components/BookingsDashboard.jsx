@@ -152,7 +152,8 @@ function DetailRow({ label, value }) {
   );
 }
 
-export default function BookingsDashboard() {
+export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
+  const isEmployee = userRole === 'EMPLOYEE';
   const [bookings, setBookings] = useState([]);
   const [unviewedCount, setUnviewedCount] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -278,11 +279,13 @@ export default function BookingsDashboard() {
       .catch(() => setDocuments([]))
       .finally(() => setLoadingDocs(false));
 
-    try {
-      const links = await getBookingPaymentLinks(booking.id);
-      setSelectedPaymentLinks(Array.isArray(links) ? links : []);
-    } catch (err) {
-      showSnackbar(err.message || 'Could not load payment links.', 'error');
+    if (!isEmployee) {
+      try {
+        const links = await getBookingPaymentLinks(booking.id);
+        setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+      } catch (err) {
+        showSnackbar(err.message || 'Could not load payment links.', 'error');
+      }
     }
 
     if (!booking?.viewed) {
@@ -466,7 +469,16 @@ export default function BookingsDashboard() {
             <Card><CardContent><Typography variant="body2" color="text.secondary">Upcoming</Typography><Typography variant="h5" fontWeight={700}>{stats.upcomingCount}</Typography></CardContent></Card>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <Card><CardContent><Typography variant="body2" color="text.secondary">Paid so far</Typography><Typography variant="h5" fontWeight={700}>₹{stats.revenue.toLocaleString('en-IN')}</Typography></CardContent></Card>
+            <Card>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">
+                  {isEmployee ? "Assigned clients" : "Paid so far"}
+                </Typography>
+                <Typography variant="h5" fontWeight={700}>
+                  {isEmployee ? bookings.length : `₹${stats.revenue.toLocaleString('en-IN')}`}
+                </Typography>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
 
@@ -509,7 +521,7 @@ export default function BookingsDashboard() {
                         <TableCell>Appointment</TableCell>
                         <TableCell>Contact</TableCell>
                         <TableCell>Goal</TableCell>
-                        <TableCell>Payment</TableCell>
+                        {!isEmployee && <TableCell>Payment</TableCell>}
                         <TableCell>Meeting</TableCell>
                         <TableCell align="right">Actions</TableCell>
                       </TableRow>
@@ -544,7 +556,9 @@ export default function BookingsDashboard() {
                           <TableCell sx={{ maxWidth: 220 }}>
                             <Typography variant="body2" noWrap title={booking.goal}>{booking.goal}</Typography>
                           </TableCell>
-                          <TableCell>₹{Number(booking.amountPaidInr || 0).toLocaleString('en-IN')}</TableCell>
+                          {!isEmployee && (
+                            <TableCell>₹{Number(booking.amountPaidInr || 0).toLocaleString('en-IN')}</TableCell>
+                          )}
                           <TableCell>
                             <Chip size="small" label={meetingLabel(booking.meetingStatus)} {...meetingChipProps(booking.meetingStatus)} />
                           </TableCell>
@@ -572,13 +586,15 @@ export default function BookingsDashboard() {
                                   <IconButton size="small" disabled={!booking.meetingLink} onClick={() => joinMeeting(booking)}><VideoCallIcon fontSize="small" /></IconButton>
                                 </span>
                               </Tooltip>
-                              <Tooltip title={booking.meetingStatus === 'MEETING_COMPLETED' ? 'Create program payment link' : 'Complete the meeting first'}>
-                                <span>
-                                  <IconButton size="small" disabled={booking.meetingStatus !== 'MEETING_COMPLETED'} onClick={() => { setSelectedBooking(booking); setPlanDialogOpen(true); }}>
-                                    <PaymentOutlinedIcon fontSize="small" />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
+                              {!isEmployee && (
+                                <Tooltip title={booking.meetingStatus === 'MEETING_COMPLETED' ? 'Create program payment link' : 'Complete the meeting first'}>
+                                  <span>
+                                    <IconButton size="small" disabled={booking.meetingStatus !== 'MEETING_COMPLETED'} onClick={() => { setSelectedBooking(booking); setPlanDialogOpen(true); }}>
+                                      <PaymentOutlinedIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              )}
                             </Stack>
                           </TableCell>
                         </TableRow>
@@ -617,8 +633,12 @@ export default function BookingsDashboard() {
               <DetailRow label="Diet type" value={selectedBooking.dietType} />
               <DetailRow label="Medication" value={selectedBooking.medication} />
               <DetailRow label="Appointment" value={formatSlot(selectedBooking)} />
-              <DetailRow label="Amount paid" value={`₹${Number(selectedBooking.amountPaidInr || 0).toLocaleString('en-IN')}`} />
-              <DetailRow label="Payment ID" value={selectedBooking.razorpayPaymentId} />
+              {!isEmployee && (
+                <>
+                  <DetailRow label="Amount paid" value={`₹${Number(selectedBooking.amountPaidInr || 0).toLocaleString('en-IN')}`} />
+                  <DetailRow label="Payment ID" value={selectedBooking.razorpayPaymentId} />
+                </>
+              )}
               <DetailRow label="Meeting link" value={selectedBooking.meetingLink} />
 
               <Box sx={{ py: 1.5 }}>
@@ -904,38 +924,42 @@ export default function BookingsDashboard() {
                 </Stack>
               </Box>
 
-              <Box sx={{ py: 1.5 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  startIcon={<PaymentOutlinedIcon />}
-                  disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
-                  onClick={openPlanDialog}
-                >
-                  Create Payment Link
-                </Button>
-              </Box>
+              {!isEmployee && (
+                <>
+                  <Box sx={{ py: 1.5 }}>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      startIcon={<PaymentOutlinedIcon />}
+                      disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
+                      onClick={openPlanDialog}
+                    >
+                      Create Payment Link
+                    </Button>
+                  </Box>
 
-              {selectedPaymentLinks.length > 0 && (
-                <Box sx={{ py: 1 }}>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Program payment links</Typography>
-                  <Stack spacing={1}>
-                    {selectedPaymentLinks.map((link) => (
-                      <Card key={link.id} variant="outlined">
-                        <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
-                          <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="center">
-                            <Box sx={{ minWidth: 0 }}>
-                              <Typography fontWeight={700}>{link.planNameSnapshot}</Typography>
-                              <Typography variant="body2">₹{Number(link.amountInr || 0).toLocaleString('en-IN')} • {link.status}</Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{link.razorpayShortUrl}</Typography>
-                            </Box>
-                            {link.razorpayShortUrl && (<Box sx={{ display: 'flex', gap: 1 }}><Button size="small" onClick={() => navigator.clipboard?.writeText(link.razorpayShortUrl)}>Copy</Button>{link.status !== 'PAID' && <Button size="small" color="success" onClick={() => handleMarkPaid(link.id)}>Mark Paid</Button>}</Box>)}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </Stack>
-                </Box>
+                  {selectedPaymentLinks.length > 0 && (
+                    <Box sx={{ py: 1 }}>
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1 }}>Program payment links</Typography>
+                      <Stack spacing={1}>
+                        {selectedPaymentLinks.map((link) => (
+                          <Card key={link.id} variant="outlined">
+                            <CardContent sx={{ py: 1.25, '&:last-child': { pb: 1.25 } }}>
+                              <Stack direction="row" justifyContent="space-between" spacing={2} alignItems="center">
+                                <Box sx={{ minWidth: 0 }}>
+                                  <Typography fontWeight={700}>{link.planNameSnapshot}</Typography>
+                                  <Typography variant="body2">₹{Number(link.amountInr || 0).toLocaleString('en-IN')} • {link.status}</Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-all' }}>{link.razorpayShortUrl}</Typography>
+                                </Box>
+                                {link.razorpayShortUrl && (<Box sx={{ display: 'flex', gap: 1 }}><Button size="small" onClick={() => navigator.clipboard?.writeText(link.razorpayShortUrl)}>Copy</Button>{link.status !== 'PAID' && <Button size="small" color="success" onClick={() => handleMarkPaid(link.id)}>Mark Paid</Button>}</Box>)}
+                              </Stack>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+                </>
               )}
             </Stack>
           )}

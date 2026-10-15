@@ -10,6 +10,8 @@ export async function getAdminBookings() {
   return res.json();
 }
 
+export const getBookings = getAdminBookings;
+
 export async function getUnviewedBookingCount() {
   const res = await adminFetch("/api/admin/bookings/unviewed-count");
 
