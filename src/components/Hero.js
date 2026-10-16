@@ -20,7 +20,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
 const trustStats = [
   { number: "500+", label: "Clients Guided" },
-  { number: "8+", label: "Years Experience" },
+  { number: "3+", label: "Years Experience" },
   { number: "4.9★", label: "Client Rating" },
 ];
 
