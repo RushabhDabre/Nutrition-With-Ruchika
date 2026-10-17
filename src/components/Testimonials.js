@@ -72,6 +72,50 @@ export default function Testimonials() {
     return () => clearInterval(intervalRef.current);
   }, [overflowing, paused, scrollByAmount, selectedTestimonial]);
 
+  // Pause all playing videos in the cards when opening modal or when another plays
+  const handleOpenTestimonial = (testimonial) => {
+    const allVideos = document.querySelectorAll("#testimonials video");
+    allVideos.forEach((v) => {
+      try {
+        v.pause();
+      } catch (e) {}
+    });
+    setSelectedTestimonial(testimonial);
+  };
+
+  const handleCloseTestimonial = () => {
+    const modalVideos = document.querySelectorAll(".testimonial-dialog-content video");
+    modalVideos.forEach((v) => {
+      try {
+        v.pause();
+        v.currentTime = 0;
+      } catch (e) {}
+    });
+    setSelectedTestimonial(null);
+  };
+
+  const handleCardVideoPlay = (e) => {
+    const allVideos = document.querySelectorAll("#testimonials video");
+    allVideos.forEach((v) => {
+      if (v !== e.target) {
+        try {
+          v.pause();
+        } catch (err) {}
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (selectedTestimonial) {
+      const cardVideos = document.querySelectorAll("#testimonials video");
+      cardVideos.forEach((v) => {
+        try {
+          v.pause();
+        } catch (e) {}
+      });
+    }
+  }, [selectedTestimonial]);
+
   if (items.length === 0) return null;
 
   return (
@@ -159,6 +203,8 @@ export default function Testimonials() {
                     <Box sx={{ width: "100%", height: 220, bgcolor: "#000" }}>
                       <video
                         src={t.mediaUrl}
+                        preload="metadata"
+                        onPlay={handleCardVideoPlay}
                         style={{
                           width: "100%",
                           height: "100%",
@@ -202,7 +248,7 @@ export default function Testimonials() {
                       {t.textContent && t.textContent.length > 120 && (
                         <Typography
                           component="span"
-                          onClick={() => setSelectedTestimonial(t)}
+                          onClick={() => handleOpenTestimonial(t)}
                           sx={{
                             color: colors.primary,
                             fontSize: "0.85rem",
@@ -274,7 +320,7 @@ export default function Testimonials() {
       {/* MODAL / DIALOG for Full Testimonial */}
       <Dialog
         open={Boolean(selectedTestimonial)}
-        onClose={() => setSelectedTestimonial(null)}
+        onClose={handleCloseTestimonial}
         maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { borderRadius: "16px" } }}
@@ -295,12 +341,12 @@ export default function Testimonials() {
                   )}
                 </Box>
               </Box>
-              <IconButton onClick={() => setSelectedTestimonial(null)} sx={{ color: colors.textLight }}>
+              <IconButton onClick={handleCloseTestimonial} sx={{ color: colors.textLight }}>
                 <CloseIcon />
               </IconButton>
             </DialogTitle>
             
-            <DialogContent dividers sx={{ p: 0 }}>
+            <DialogContent dividers className="testimonial-dialog-content" sx={{ p: 0 }}>
               {/* Media in Modal (Full Size) */}
               {selectedTestimonial.type === "PHOTO" && selectedTestimonial.mediaUrl && (
                 <Box

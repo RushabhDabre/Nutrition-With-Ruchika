@@ -85,7 +85,7 @@ export default function AdminDashboard() {
         label: isSuperAdmin ? "Dashboard" : "My Clients",
         permission: "VIEW_BOOKINGS",
         superAdminOnly: false,
-        component: <BookingsDashboard userRole={currentUser.role} />,
+        component: <BookingsDashboard userRole={currentUser.role} permissions={userPerms} />,
       },
       {
         id: "employees",

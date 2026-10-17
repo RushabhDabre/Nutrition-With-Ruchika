@@ -124,3 +124,34 @@ export async function updateClientWorkspace(bookingId, { driveFolderUrl, clinica
 
   return res.json();
 }
+
+export async function recordOfflinePayment(bookingId, planId, paymentNotes = "") {
+  const params = new URLSearchParams({ planId });
+  if (paymentNotes) params.append("paymentNotes", paymentNotes);
+  const res = await adminFetch(
+    `/api/admin/consultation-plans/bookings/${bookingId}/record-offline-payment?${params.toString()}`,
+    { method: "POST" }
+  );
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || "Failed to record payment");
+  }
+
+  return data;
+}
+
+export async function createManualClient(payload) {
+  const res = await adminFetch("/api/admin/bookings/manual-client", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || data.message || "Failed to add client");
+  }
+
+  return data;
+}

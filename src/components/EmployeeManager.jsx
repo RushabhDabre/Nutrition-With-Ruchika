@@ -51,6 +51,11 @@ const AVAILABLE_PERMISSIONS = [
     description: "Access assigned clients, appointment statuses, and notes (payment data hidden)",
   },
   {
+    key: "CREATE_CLIENT",
+    label: "Add New Clients",
+    description: "Allow employee to manually enroll walk-in, phone, or direct referral clients",
+  },
+  {
     key: "VIEW_DOCUMENTS",
     label: "Client Documents",
     description: "View and upload diet charts, lab reports, and files for assigned clients",

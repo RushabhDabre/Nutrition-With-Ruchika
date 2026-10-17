@@ -18,13 +18,15 @@ import {
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LinkIcon from "@mui/icons-material/Link";
-import { createConsultationPlan, createPlanPaymentLink, getConsultationPlans, getBookingPaymentLinks } from "../utils/bookingsApi.js";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import { createConsultationPlan, createPlanPaymentLink, getConsultationPlans, getBookingPaymentLinks, recordOfflinePayment } from "../utils/bookingsApi.js";
 import { useFeedback } from "../context/FeedbackContext";
 
 export default function PlanSelectionDialog({ open, booking, onClose, onSuccess }) {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creatingPlanId, setCreatingPlanId] = useState(null);
+  const [recordingPaidPlanId, setRecordingPaidPlanId] = useState(null);
   const [createdLink, setCreatedLink] = useState(null);
   const [customOpen, setCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", priceInr: "", description: "" });
@@ -87,6 +89,42 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
       showSnackbar(err.message || "Could not create payment link.", "error");
     } finally {
       setCreatingPlanId(null);
+    }
+  };
+
+  const handleRecordDirectPayment = async (plan) => {
+    if (!booking?.id) return;
+
+    const activeLink = existingLinks.find(l => l.status === 'PAID');
+    if (activeLink) {
+      const proceed = await showConfirm({
+        title: 'Payment Already Received!',
+        message: `"${activeLink.planNameSnapshot}" — ₹${Number(activeLink.amountInr || 0).toLocaleString("en-IN")} is already marked as PAID for this client.\n\nAre you sure you want to record another payment for "${plan.name}"?`,
+        type: 'warning',
+        confirmText: 'Record Anyway'
+      });
+      if (!proceed) return;
+    } else {
+      const proceed = await showConfirm({
+        title: `Record Paid: ${plan.name}?`,
+        message: `Did ${booking.name || 'the client'} already pay ₹${Number(plan.priceInr || 0).toLocaleString("en-IN")} directly?\n\nThis will mark the plan as PAID immediately and send a payment receipt to the client on WhatsApp.\n\nNO payment link will be sent.`,
+        type: 'info',
+        confirmText: 'Yes, Mark as Paid',
+        cancelText: 'Cancel'
+      });
+      if (!proceed) return;
+    }
+
+    setRecordingPaidPlanId(plan.id);
+    try {
+      const result = await recordOfflinePayment(booking.id, plan.id, "DIRECT_OFFLINE");
+      showSnackbar(`Payment for "${plan.name}" recorded as PAID! Receipt sent to client.`, "success");
+      onSuccess?.(result);
+      onClose();
+    } catch (err) {
+      showSnackbar(err.message || "Could not record payment.", "error");
+    } finally {
+      setRecordingPaidPlanId(null);
     }
   };
 
@@ -169,14 +207,37 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
                       </Stack>
                     </CardContent>
                     <Box sx={{ px: 2, pb: 2 }}>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        disabled={Boolean(creatingPlanId)}
-                        onClick={() => handleCreateLink(plan)}
-                      >
-                        {creatingPlanId === plan.id ? <CircularProgress size={20} color="inherit" /> : "Create Payment Link"}
-                      </Button>
+                      <Stack spacing={1}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          color="success"
+                          startIcon={<CheckCircleOutlineIcon />}
+                          disabled={Boolean(creatingPlanId) || Boolean(recordingPaidPlanId)}
+                          onClick={() => handleRecordDirectPayment(plan)}
+                          sx={{ textTransform: "none", fontWeight: 700 }}
+                        >
+                          {recordingPaidPlanId === plan.id ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            "Record Paid (Offline / Direct)"
+                          )}
+                        </Button>
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          startIcon={<LinkIcon />}
+                          disabled={Boolean(creatingPlanId) || Boolean(recordingPaidPlanId)}
+                          onClick={() => handleCreateLink(plan)}
+                          sx={{ textTransform: "none" }}
+                        >
+                          {creatingPlanId === plan.id ? (
+                            <CircularProgress size={20} color="inherit" />
+                          ) : (
+                            "Send Payment Link Online"
+                          )}
+                        </Button>
+                      </Stack>
                     </Box>
                   </Card>
                 </Grid>
