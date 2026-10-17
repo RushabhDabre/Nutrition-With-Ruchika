@@ -42,6 +42,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import {
   getAdminBookings,
   getBookingPaymentLinks,
@@ -58,7 +59,9 @@ import {
   getDocumentViewUrl,
 } from '../utils/clientDocumentsApi.js';
 import { useFeedback } from '../context/FeedbackContext';
+import { colors } from '../theme';
 import PlanSelectionDialog from './PlanSelectionDialog.jsx';
+import AddClientDialog from './AddClientDialog.jsx';
 
 function formatDate(dateValue) {
   if (!dateValue) return '-';
@@ -152,13 +155,15 @@ function DetailRow({ label, value }) {
   );
 }
 
-export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
+export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permissions = [] }) {
   const isEmployee = userRole === 'EMPLOYEE';
+  const canAddClient = !isEmployee || (Array.isArray(permissions) && (permissions.includes('ALL') || permissions.includes('CREATE_CLIENT')));
   const [bookings, setBookings] = useState([]);
   const [unviewedCount, setUnviewedCount] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedPaymentLinks, setSelectedPaymentLinks] = useState([]);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
+  const [addClientOpen, setAddClientOpen] = useState(false);
   const [workspaceDriveUrl, setWorkspaceDriveUrl] = useState('');
   const [workspaceNotes, setWorkspaceNotes] = useState('');
   const [workspaceSaving, setWorkspaceSaving] = useState(false);
@@ -443,7 +448,24 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
             </Typography>
           </Stack>
 
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            {canAddClient && (
+              <Button
+                variant="contained"
+                startIcon={<PersonAddAlt1Icon />}
+                onClick={() => setAddClientOpen(true)}
+                sx={{
+                  backgroundColor: colors.primary,
+                  "&:hover": { backgroundColor: colors.primaryDark },
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: 2,
+                  px: 2,
+                }}
+              >
+                Add Client
+              </Button>
+            )}
             <Tooltip title="Refresh bookings">
               <IconButton onClick={loadDashboard} disabled={loading}>
                 <RefreshIcon />
@@ -581,11 +603,15 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
                                   </IconButton>
                                 </Tooltip>
                               )}
-                              <Tooltip title={booking.meetingLink ? 'Join meeting' : 'Meeting link not configured'}>
-                                <span>
-                                  <IconButton size="small" disabled={!booking.meetingLink} onClick={() => joinMeeting(booking)}><VideoCallIcon fontSize="small" /></IconButton>
-                                </span>
-                              </Tooltip>
+                              {!isEmployee && booking.meetingStatus !== 'MEETING_COMPLETED' && Boolean(booking.meetingLink) && (
+                                <Tooltip title="Join meeting">
+                                  <span>
+                                    <IconButton size="small" color="primary" onClick={() => joinMeeting(booking)}>
+                                      <VideoCallIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              )}
                               {!isEmployee && (
                                 <Tooltip title={booking.meetingStatus === 'MEETING_COMPLETED' ? 'Create program payment link' : 'Complete the meeting first'}>
                                   <span>
@@ -639,7 +665,9 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
                   <DetailRow label="Payment ID" value={selectedBooking.razorpayPaymentId} />
                 </>
               )}
-              <DetailRow label="Meeting link" value={selectedBooking.meetingLink} />
+              {!isEmployee && selectedBooking.meetingStatus !== 'MEETING_COMPLETED' && selectedBooking.meetingLink && (
+                <DetailRow label="Meeting link" value={selectedBooking.meetingLink} />
+              )}
 
               <Box sx={{ py: 1.5 }}>
                 {selectedBooking.meetingStatus === 'NOT_STARTED' ? (
@@ -934,7 +962,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
                       disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
                       onClick={openPlanDialog}
                     >
-                      Create Payment Link
+                      Assign Plan / Payment
                     </Button>
                   </Box>
 
@@ -964,16 +992,33 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedBooking(null)}>Close</Button>
-          <Button
-            variant="contained"
-            startIcon={<VideoCallIcon />}
-            disabled={!selectedBooking?.meetingLink}
-            onClick={() => joinMeeting(selectedBooking)}
-          >
-            Join meeting
-          </Button>
+        <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Box>
+            {selectedBooking?.meetingStatus === 'MEETING_COMPLETED' && (
+              <Chip
+                size="small"
+                color="success"
+                variant="outlined"
+                label="Consultation Completed"
+                sx={{ fontWeight: 600 }}
+              />
+            )}
+          </Box>
+          <Stack direction="row" spacing={1.5}>
+            <Button onClick={() => setSelectedBooking(null)}>Close</Button>
+            {!isEmployee &&
+              selectedBooking?.meetingStatus !== 'MEETING_COMPLETED' &&
+              Boolean(selectedBooking?.meetingLink) && (
+                <Button
+                  variant="contained"
+                  startIcon={<VideoCallIcon />}
+                  onClick={() => joinMeeting(selectedBooking)}
+                  sx={{ textTransform: 'none', fontWeight: 700 }}
+                >
+                  Join meeting
+                </Button>
+              )}
+          </Stack>
         </DialogActions>
       </Dialog>
 
@@ -986,9 +1031,21 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN' }) {
             try {
               const links = await getBookingPaymentLinks(selectedBooking.id);
               setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+              loadDashboard();
             } catch {
               // The created-link response is already displayed in the plan dialog.
             }
+          }
+        }}
+      />
+
+      <AddClientDialog
+        open={addClientOpen}
+        onClose={() => setAddClientOpen(false)}
+        onSuccess={async (newClient) => {
+          await loadDashboard();
+          if (newClient) {
+            setSelectedBooking(newClient);
           }
         }}
       />
