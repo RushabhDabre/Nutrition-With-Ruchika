@@ -336,7 +336,7 @@ export default function AdminDashboard() {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container maxWidth="lg" sx={{ py: 4, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         {visibleTabs.length === 0 ? (
           <Box sx={{ py: 8, textAlign: "center" }}>
             <Typography variant="h6" fontWeight={700}>
@@ -347,20 +347,23 @@ export default function AdminDashboard() {
             </Typography>
           </Box>
         ) : (
-          <Stack spacing={4}>
+          <Stack spacing={4} sx={{ width: '100%', maxWidth: '100%', minWidth: 0 }}>
             <Tabs
               value={activeTabIndex}
               onChange={(e, v) => setTab(v)}
               variant="scrollable"
               scrollButtons="auto"
               TabIndicatorProps={{ style: { background: colors.primary } }}
+              sx={{ maxWidth: '100%' }}
             >
               {visibleTabs.map((t) => (
                 <Tab key={t.id} label={t.label} />
               ))}
             </Tabs>
 
-            {visibleTabs[activeTabIndex]?.component}
+            <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
+              {visibleTabs[activeTabIndex]?.component}
+            </Box>
           </Stack>
         )}
       </Container>

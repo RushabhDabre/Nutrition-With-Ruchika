@@ -101,7 +101,7 @@ export default function Programs() {
                 )}
                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                   <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, mb: 1 }}>{p.name}</Typography>
-                  <Typography sx={{ color: colors.textLight, fontSize: '0.88rem', mb: 2.5, minHeight: 40 }}>
+                  <Typography sx={{ color: colors.textLight, fontSize: '0.88rem', mb: 2.5, minHeight: 40, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                     {p.desc}
                   </Typography>
                   <Typography sx={{ fontSize: '2.5rem', fontWeight: 800, color: colors.primary, lineHeight: 1.1 }}>
