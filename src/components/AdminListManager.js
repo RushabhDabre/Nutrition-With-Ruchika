@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Paper, TextField, Typography, Button, IconButton, Switch,
-  FormControlLabel, CircularProgress, Alert, Collapse,
+  FormControlLabel, CircularProgress, Alert, Collapse, Stack,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
@@ -101,8 +101,8 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
   };
 
   return (
-    <Box>
-{helpText && <Alert severity="info" sx={{ mb: 3, fontSize: '0.85rem' }}>{helpText}</Alert>}
+    <Box sx={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+      {helpText && <Alert severity="info" sx={{ mb: 3, fontSize: '0.85rem' }}>{helpText}</Alert>}
 
       {!formOpen && (
         <Button variant="contained" startIcon={<AddIcon />} onClick={handleAddNew} sx={{ background: gradientBrand, mb: 3 }}>
@@ -111,7 +111,19 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
       )}
 
       <Collapse in={formOpen}>
-        <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: `2px solid ${colors.border}`, borderRadius: '12px' }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2.5,
+            mb: 3,
+            border: `2px solid ${colors.border}`,
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
+            boxSizing: 'border-box',
+          }}
+        >
           <Typography sx={{ fontWeight: 700, mb: 2, fontSize: '0.95rem' }}>
             {form.id ? `Edit ${itemLabel}` : `New ${itemLabel}`}
           </Typography>
@@ -164,28 +176,74 @@ export default function AdminListManager({ apiPath, itemLabel, fields, helpText,
       </Collapse>
 
       {loading ? <CircularProgress size={24} /> : (
-        <Box sx={{ display: 'grid', gap: 1 }}>
+        <Box sx={{ display: 'grid', gap: 1.5, width: '100%', maxWidth: '100%', minWidth: 0 }}>
           {items.map((item) => {
             const preview = renderPreview
               ? renderPreview(item)
               : { primary: item[fields[0]?.name] || '', secondary: '' };
             return (
               <Paper
-                key={item.id} elevation={0}
-                sx={{ p: 1.25, border: `1px solid ${colors.border}`, borderRadius: '10px', display: 'flex', alignItems: 'center', gap: 1.5 }}
+                key={item.id}
+                elevation={0}
+                sx={{
+                  p: 2,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 1.5,
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                  },
+                }}
               >
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {preview.primary} {!item.active && <span style={{ color: colors.textLight, fontWeight: 400 }}>(inactive)</span>}
+                <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: '0.92rem',
+                      color: colors.textDark,
+                      wordBreak: 'break-word',
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {preview.primary}{' '}
+                    {!item.active && (
+                      <span style={{ color: colors.textLight, fontWeight: 400, fontSize: '0.82rem' }}>
+                        (inactive)
+                      </span>
+                    )}
                   </Typography>
                   {preview.secondary && (
-                    <Typography sx={{ fontSize: '0.75rem', color: colors.textLight, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.82rem',
+                        color: colors.textLight,
+                        mt: 0.5,
+                        lineHeight: 1.5,
+                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
+                        whiteSpace: 'normal',
+                      }}
+                    >
                       {preview.secondary}
                     </Typography>
                   )}
                 </Box>
-                <IconButton size="small" onClick={() => handleEdit(item)}><EditIcon fontSize="small" /></IconButton>
-                <IconButton size="small" onClick={() => handleDelete(item.id)}><DeleteIcon fontSize="small" /></IconButton>
+                <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 'auto' }}>
+                  <IconButton size="small" onClick={() => handleEdit(item)}>
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleDelete(item.id)}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
               </Paper>
             );
           })}

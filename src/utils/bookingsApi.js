@@ -155,3 +155,14 @@ export async function createManualClient(payload) {
 
   return data;
 }
+
+export async function getAllPlanPayments() {
+  const res = await adminFetch("/api/admin/consultation-plans/payments");
+
+  if (!res.ok) {
+    throw new Error("Failed to load plan payments");
+  }
+
+  return res.json();
+}
+

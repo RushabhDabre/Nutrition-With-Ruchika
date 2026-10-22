@@ -203,7 +203,17 @@ export default function PlanSelectionDialog({ open, booking, onClose, onSuccess 
                       <Stack spacing={1.25}>
                         <Typography variant="h6" fontWeight={800}>{plan.name}</Typography>
                         <Typography variant="h5" fontWeight={800}>₹{Number(plan.priceInr || 0).toLocaleString("en-IN")}</Typography>
-                        <Typography variant="body2" color="text.secondary">{plan.description}</Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            wordBreak: "break-word",
+                            overflowWrap: "anywhere",
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {plan.description}
+                        </Typography>
                       </Stack>
                     </CardContent>
                     <Box sx={{ px: 2, pb: 2 }}>

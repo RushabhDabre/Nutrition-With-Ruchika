@@ -43,6 +43,7 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined';
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import {
   getAdminBookings,
   getBookingPaymentLinks,
@@ -51,6 +52,7 @@ import {
   markPaymentLinkPaid,
   updateMeetingStatus,
   updateClientWorkspace,
+  getAllPlanPayments,
 } from '../utils/bookingsApi.js';
 import {
   getBookingDocuments,
@@ -62,6 +64,8 @@ import { useFeedback } from '../context/FeedbackContext';
 import { colors } from '../theme';
 import PlanSelectionDialog from './PlanSelectionDialog.jsx';
 import AddClientDialog from './AddClientDialog.jsx';
+import PlanRevenueAnalytics from './PlanRevenueAnalytics.jsx';
+import { exportClientsToExcel } from '../utils/exportToExcel.js';
 
 function formatDate(dateValue) {
   if (!dateValue) return '-';
@@ -159,6 +163,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
   const isEmployee = userRole === 'EMPLOYEE';
   const canAddClient = !isEmployee || (Array.isArray(permissions) && (permissions.includes('ALL') || permissions.includes('CREATE_CLIENT')));
   const [bookings, setBookings] = useState([]);
+  const [planPayments, setPlanPayments] = useState([]);
   const [unviewedCount, setUnviewedCount] = useState(0);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [selectedPaymentLinks, setSelectedPaymentLinks] = useState([]);
@@ -184,13 +189,24 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     try {
-      const [bookingData, countData] = await Promise.all([
+      const promises = [
         getAdminBookings(),
         getUnviewedBookingCount()
-      ]);
+      ];
+      if (!isEmployee) {
+        promises.push(getAllPlanPayments());
+      }
+      const results = await Promise.all(promises);
+      const bookingData = results[0];
+      const countData = results[1];
+      const paymentsData = !isEmployee ? results[2] : [];
+
       const nextBookings = Array.isArray(bookingData) ? bookingData : [];
       setBookings(nextBookings);
       setUnviewedCount(Number(countData) || 0);
+      if (!isEmployee) {
+        setPlanPayments(Array.isArray(paymentsData) ? paymentsData : []);
+      }
       setSelectedBooking((current) => {
         if (!current) return current;
         return nextBookings.find((item) => item.id === current.id) || current;
@@ -200,7 +216,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
     } finally {
       setLoading(false);
     }
-  }, [showSnackbar]);
+  }, [showSnackbar, isEmployee]);
 
   useEffect(() => {
     loadDashboard();
@@ -265,9 +281,23 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
     const todayCount = bookings.filter((b) => b?.bookingDate === today).length;
     const upcomingCount = bookings.filter(isUpcoming).length;
-    const revenue = bookings.reduce((sum, b) => sum + Number(b?.amountPaidInr || 0), 0);
+    const discoveryRevenue = bookings.reduce((sum, b) => sum + Number(b?.amountPaidInr || 0), 0);
+    const planRevenue = (Array.isArray(planPayments) ? planPayments : [])
+      .filter((p) => p?.status === 'PAID')
+      .reduce((sum, p) => sum + Number(p?.amountInr || 0), 0);
+    const revenue = discoveryRevenue + planRevenue;
     return { todayCount, upcomingCount, revenue };
-  }, [bookings]);
+  }, [bookings, planPayments]);
+
+  const handleExportClients = () => {
+    try {
+      const exportList = filteredBookings.length > 0 ? filteredBookings : bookings;
+      exportClientsToExcel(exportList, planPayments);
+      showSnackbar(`Exported ${exportList.length} client(s) to Excel!`, 'success');
+    } catch (err) {
+      showSnackbar(err.message || 'Failed to export client data.', 'error');
+    }
+  };
 
   const openBooking = async (booking) => {
     setSelectedBooking(booking);
@@ -394,6 +424,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
       await markPaymentLinkPaid(paymentId);
       const links = await getBookingPaymentLinks(selectedBooking.id);
       setSelectedPaymentLinks(Array.isArray(links) ? links : []);
+      loadDashboard();
       showSnackbar("Payment marked as PAID manually", "success");
     } catch (err) {
       showSnackbar(err.message || 'Could not mark as paid.', 'error');
@@ -466,6 +497,28 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                 Add Client
               </Button>
             )}
+            {!isEmployee && (
+              <Button
+                variant="outlined"
+                startIcon={<FileDownloadIcon />}
+                onClick={handleExportClients}
+                disabled={loading || bookings.length === 0}
+                sx={{
+                  borderColor: '#10b981',
+                  color: '#059669',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  borderRadius: 2,
+                  px: 2,
+                  '&:hover': {
+                    borderColor: '#059669',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)'
+                  }
+                }}
+              >
+                Export to Excel
+              </Button>
+            )}
             <Tooltip title="Refresh bookings">
               <IconButton onClick={loadDashboard} disabled={loading}>
                 <RefreshIcon />
@@ -494,7 +547,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
             <Card>
               <CardContent>
                 <Typography variant="body2" color="text.secondary">
-                  {isEmployee ? "Assigned clients" : "Paid so far"}
+                  {isEmployee ? "Assigned clients" : "Total Revenue"}
                 </Typography>
                 <Typography variant="h5" fontWeight={700}>
                   {isEmployee ? bookings.length : `₹${stats.revenue.toLocaleString('en-IN')}`}
@@ -503,6 +556,14 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
             </Card>
           </Grid>
         </Grid>
+
+        {!isEmployee && (
+          <PlanRevenueAnalytics
+            planPayments={planPayments}
+            bookings={bookings}
+            onExportClients={handleExportClients}
+          />
+        )}
 
         <Card>
           <CardContent>
