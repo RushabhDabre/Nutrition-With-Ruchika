@@ -86,6 +86,14 @@ export default function BookingFlow() {
   const [slotPickerKey, setSlotPickerKey] = useState(0);
   const [paymentRecovery, setPaymentRecovery] = useState(null);
 
+  React.useEffect(() => {
+    if (isOpen && typeof window !== "undefined" && window.fbq) {
+      window.fbq("track", "Lead", {
+        content_name: "Consultation Intake View",
+      });
+    }
+  }, [isOpen]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -135,6 +143,13 @@ export default function BookingFlow() {
     if (validateStep1()) {
       setApiError("");
       setActiveStep(1);
+      if (typeof window !== "undefined" && window.fbq) {
+        window.fbq("track", "InitiateCheckout", {
+          content_name: "1-on-1 Consultation Booking",
+          value: consultationFee,
+          currency: "INR",
+        });
+      }
     }
   };
 
@@ -193,6 +208,15 @@ export default function BookingFlow() {
           setPaymentRecovery(null);
           setConfirmedBooking(verifyData.booking);
           setActiveStep(2);
+
+          if (typeof window !== "undefined" && window.fbq) {
+            window.fbq("track", "Purchase", {
+              value: Number(verifyData.booking?.amountPaidInr || consultationFee),
+              currency: "INR",
+              content_name: "1-on-1 Consultation Booking",
+              content_type: "product",
+            });
+          }
         } catch (err) {
           setApiError(getUserFacingError(err));
         } finally {

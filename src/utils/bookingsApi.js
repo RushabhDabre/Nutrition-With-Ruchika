@@ -166,3 +166,30 @@ export async function getAllPlanPayments() {
   return res.json();
 }
 
+export async function toggleBookingDisabled(bookingId) {
+  const res = await adminFetch(`/api/admin/bookings/${bookingId}/toggle-disabled`, {
+    method: "PATCH",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || data.message || "Failed to update booking status");
+  }
+
+  return res.json();
+}
+
+export async function deleteBooking(bookingId) {
+  const res = await adminFetch(`/api/admin/bookings/${bookingId}`, {
+    method: "DELETE",
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || data.message || "Failed to delete booking");
+  }
+
+  return true;
+}
+
+

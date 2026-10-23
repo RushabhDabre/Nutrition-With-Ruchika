@@ -13,6 +13,7 @@ import EventIcon from "@mui/icons-material/Event";
 import { colors, gradientBrand } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
+import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
@@ -21,7 +22,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 const trustStats = [
   { number: "500+", label: "Clients Guided" },
   { number: "3+", label: "Years Experience" },
-  { number: "4.9★", label: "Client Rating" },
+  { number: "4.9â˜…", label: "Client Rating" },
 ];
 
 /** Matches youtube.com/watch?v=, youtu.be/, and youtube.com/embed/ formats. */
@@ -55,7 +56,7 @@ function VideoEmbed({ url }) {
   }, []);
 
   if (!url) {
-    return <Typography sx={{ fontSize: "3.5rem" }}>🎥</Typography>;
+    return <Typography sx={{ fontSize: "3.5rem" }}>ðŸŽ¥</Typography>;
   }
 
   const youtubeId = extractYouTubeId(url);
@@ -222,7 +223,10 @@ function VideoEmbed({ url }) {
 export default function Hero({ topOffset = 96 }) {
   const { openBooking } = useBooking();
   const { contact, hero } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   return (
     <Box
@@ -273,7 +277,7 @@ export default function Hero({ topOffset = 96 }) {
         >
           <Box>
             <Chip
-              label="🌿 Certified Nutritionist & Dietitian"
+              label="ðŸŒ¿ Certified Nutritionist & Dietitian"
               sx={{
                 bgcolor: "rgba(99,102,241,0.1)",
                 color: colors.primary,
@@ -339,6 +343,7 @@ export default function Hero({ topOffset = 96 }) {
                 href={whatsappLink}
                 target="_blank"
                 rel="noreferrer"
+                onClick={() => trackWhatsAppClick("Hero Button")}
                 variant="contained"
                 size="large"
                 startIcon={<WhatsAppIcon />}
@@ -409,7 +414,7 @@ export default function Hero({ topOffset = 96 }) {
                   color: colors.white, fontSize: '1.2rem',
                 }}
               >
-                🎓
+                ðŸŽ“
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>M.Sc. Nutrition</Typography>

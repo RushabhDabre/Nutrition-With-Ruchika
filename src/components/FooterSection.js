@@ -8,11 +8,15 @@ import EventIcon from "@mui/icons-material/Event";
 import { colors, gradientBrand } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
+import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
 
 export function FinalCTA() {
   const { openBooking } = useBooking();
   const { contact } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   return (
     <Box
@@ -65,6 +69,7 @@ export function FinalCTA() {
             href={whatsappLink}
             target="_blank"
             rel="noreferrer"
+            onClick={() => trackWhatsAppClick("Final CTA")}
             variant="outlined"
             size="large"
             startIcon={<WhatsAppIcon />}
@@ -96,7 +101,10 @@ const footerLinkSx = {
 
 export function Footer() {
   const { contact } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   return (
     <Box
@@ -216,6 +224,7 @@ export function Footer() {
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackWhatsAppClick("Footer Link")}
               sx={{
                 ...footerLinkSx,
                 display: "flex",
@@ -253,7 +262,7 @@ export function Footer() {
           }}
         >
           <Typography sx={{ fontSize: "inherit", color: "inherit" }}>
-            Nutrition with Ruchika | Nutritionist & Dietitian ©{" "}
+            Nutrition with Ruchika | Nutritionist & Dietitian Â©{" "}
             {new Date().getFullYear()}
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 } }}>
@@ -310,13 +319,17 @@ export function Footer() {
 
 export function WhatsAppFloat() {
   const { contact } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   return (
     <Fab
       href={whatsappLink}
       target="_blank"
       rel="noreferrer"
+      onClick={() => trackWhatsAppClick("Float Button")}
       sx={{
         position: "fixed",
         bottom: 28,

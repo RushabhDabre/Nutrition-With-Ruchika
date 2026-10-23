@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Card,
@@ -44,6 +45,8 @@ import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutl
 import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import BlockIcon from '@mui/icons-material/Block';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import {
   getAdminBookings,
   getBookingPaymentLinks,
@@ -53,6 +56,8 @@ import {
   updateMeetingStatus,
   updateClientWorkspace,
   getAllPlanPayments,
+  toggleBookingDisabled,
+  deleteBooking,
 } from '../utils/bookingsApi.js';
 import {
   getBookingDocuments,
@@ -276,18 +281,24 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
     setPage(0);
   }, [search, viewFilter]);
 
+  const disabledBookingIds = useMemo(
+    () => new Set(bookings.filter((b) => b?.disabled).map((b) => b.id)),
+    [bookings]
+  );
+
   const stats = useMemo(() => {
     const now = new Date();
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
-    const todayCount = bookings.filter((b) => b?.bookingDate === today).length;
-    const upcomingCount = bookings.filter(isUpcoming).length;
-    const discoveryRevenue = bookings.reduce((sum, b) => sum + Number(b?.amountPaidInr || 0), 0);
+    const activeBookings = bookings.filter((b) => !b?.disabled);
+    const todayCount = activeBookings.filter((b) => b?.bookingDate === today).length;
+    const upcomingCount = activeBookings.filter(isUpcoming).length;
+    const discoveryRevenue = activeBookings.reduce((sum, b) => sum + Number(b?.amountPaidInr || 0), 0);
     const planRevenue = (Array.isArray(planPayments) ? planPayments : [])
-      .filter((p) => p?.status === 'PAID')
+      .filter((p) => p?.status === 'PAID' && !disabledBookingIds.has(p.bookingId))
       .reduce((sum, p) => sum + Number(p?.amountInr || 0), 0);
     const revenue = discoveryRevenue + planRevenue;
     return { todayCount, upcomingCount, revenue };
-  }, [bookings, planPayments]);
+  }, [bookings, planPayments, disabledBookingIds]);
 
   const handleExportClients = () => {
     try {
@@ -296,6 +307,57 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
       showSnackbar(`Exported ${exportList.length} client(s) to Excel!`, 'success');
     } catch (err) {
       showSnackbar(err.message || 'Failed to export client data.', 'error');
+    }
+  };
+
+  const handleToggleDisabled = async (booking) => {
+    if (!booking) return;
+    const isCurrentlyDisabled = Boolean(booking.disabled);
+    const confirmMessage = isCurrentlyDisabled
+      ? `Re-enable booking for "${booking.name}"? Its revenue and appointment slot will be counted again.`
+      : `Disable this test booking for "${booking.name}"?\n\n• It will appear faint/dimmed in the table.\n• Its discovery fee and plan revenue will be EXCLUDED from all revenue stats.\n• Its time slot will be freed up on the calendar.`;
+
+    const proceed = await showConfirm({
+      title: `${isCurrentlyDisabled ? "Enable" : "Disable"} Booking?`,
+      message: confirmMessage,
+      type: isCurrentlyDisabled ? "info" : "warning",
+      confirmText: isCurrentlyDisabled ? "Enable Booking" : "Disable Booking",
+    });
+
+    if (!proceed) return;
+
+    try {
+      const updated = await toggleBookingDisabled(booking.id);
+      setBookings((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      if (selectedBooking && selectedBooking.id === updated.id) {
+        setSelectedBooking(updated);
+      }
+      showSnackbar(`Booking ${isCurrentlyDisabled ? "enabled" : "disabled"} successfully!`, "success");
+    } catch (err) {
+      showSnackbar(err.message || "Failed to update booking status", "error");
+    }
+  };
+
+  const handleDeleteBooking = async (booking) => {
+    if (!booking) return;
+    const proceed = await showConfirm({
+      title: "Delete Test Booking?",
+      message: `Permanently delete test booking for "${booking.name}"?\n\n⚠️ All associated client documents, notes, and plan records will be permanently removed. This action cannot be undone.`,
+      type: "error",
+      confirmText: "Delete Permanently",
+    });
+
+    if (!proceed) return;
+
+    try {
+      await deleteBooking(booking.id);
+      setBookings((current) => current.filter((item) => item.id !== booking.id));
+      if (selectedBooking && selectedBooking.id === booking.id) {
+        setSelectedBooking(null);
+      }
+      showSnackbar("Booking permanently deleted!", "success");
+    } catch (err) {
+      showSnackbar(err.message || "Failed to delete booking", "error");
     }
   };
 
@@ -559,8 +621,8 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
 
         {!isEmployee && (
           <PlanRevenueAnalytics
-            planPayments={planPayments}
-            bookings={bookings}
+            planPayments={planPayments.filter((p) => !disabledBookingIds.has(p.bookingId))}
+            bookings={bookings.filter((b) => !b?.disabled)}
             onExportClients={handleExportClients}
           />
         )}
@@ -611,13 +673,48 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                     </TableHead>
                     <TableBody>
                       {filteredBookings.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((booking) => (
-                        <TableRow key={booking.id} hover sx={{ backgroundColor: booking.viewed ? 'inherit' : 'action.hover' }}>
+                        <TableRow
+                          key={booking.id}
+                          hover
+                          sx={{
+                            backgroundColor: booking.disabled
+                              ? 'rgba(241, 245, 249, 0.65)'
+                              : booking.viewed
+                              ? 'inherit'
+                              : 'action.hover',
+                            opacity: booking.disabled ? 0.45 : 1,
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
                           <TableCell>
                             <Stack direction="row" spacing={1} alignItems="center">
                               <Box>
                                 <Stack direction="row" spacing={0.75} alignItems="center">
-                                  <Typography variant="body2" fontWeight={700}>{booking.name}</Typography>
-                                  {!booking.viewed && <Chip size="small" color="error" label="NEW" sx={{ height: 20, fontSize: 10 }} />}
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight={700}
+                                    sx={{
+                                      textDecoration: booking.disabled ? 'line-through' : 'none',
+                                      color: booking.disabled ? 'text.secondary' : 'inherit',
+                                    }}
+                                  >
+                                    {booking.name}
+                                  </Typography>
+                                  {booking.disabled ? (
+                                    <Chip
+                                      size="small"
+                                      label="Disabled (Test)"
+                                      sx={{
+                                        height: 20,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        bgcolor: '#e2e8f0',
+                                        color: '#475569',
+                                      }}
+                                    />
+                                  ) : !booking.viewed ? (
+                                    <Chip size="small" color="error" label="NEW" sx={{ height: 20, fontSize: 10 }} />
+                                  ) : null}
                                   {booking.whatsappReminderSent && (
                                     <Tooltip title="WhatsApp Reminder Sent" arrow>
                                       <WhatsAppIcon sx={{ fontSize: 16, color: '#25D366' }} />
@@ -650,6 +747,35 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                               <Tooltip title="View details">
                                 <IconButton size="small" onClick={() => openBooking(booking)}><VisibilityOutlinedIcon fontSize="small" /></IconButton>
                               </Tooltip>
+                              {!isEmployee && (
+                                <>
+                                  <Tooltip title={booking.disabled ? "Re-enable booking" : "Disable test booking (exclude from revenue & calendar)"}>
+                                    <IconButton
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleToggleDisabled(booking);
+                                      }}
+                                      sx={{ color: booking.disabled ? '#10b981' : '#94a3b8' }}
+                                    >
+                                      {booking.disabled ? <CheckCircleOutlineIcon fontSize="small" /> : <BlockIcon fontSize="small" />}
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Delete test booking permanently">
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBooking(booking);
+                                      }}
+                                      sx={{ color: '#ef4444' }}
+                                    >
+                                      <DeleteOutlineIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
                               {booking.driveFolderUrl && (
                                 <Tooltip title="Open Client Google Drive Folder">
                                   <IconButton
@@ -673,7 +799,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                                   </span>
                                 </Tooltip>
                               )}
-                              {!isEmployee && (
+                              {!isEmployee && !booking.disabled && (
                                 <Tooltip title={booking.meetingStatus === 'MEETING_COMPLETED' ? 'Create program payment link' : 'Complete the meeting first'}>
                                   <span>
                                     <IconButton size="small" disabled={booking.meetingStatus !== 'MEETING_COMPLETED'} onClick={() => { setSelectedBooking(booking); setPlanDialogOpen(true); }}>
@@ -709,6 +835,11 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
         <DialogContent dividers>
           {selectedBooking && (
             <Stack divider={<Divider flexItem />} spacing={0.5}>
+              {selectedBooking.disabled && (
+                <Alert severity="warning" sx={{ mb: 1.5, fontWeight: 600 }}>
+                  This booking is DISABLED (Test Booking). Its revenue is completely excluded from totals, and its slot is free on the calendar.
+                </Alert>
+              )}
               <DetailRow label="Name" value={selectedBooking.name} />
               <DetailRow label="Age / Gender" value={`${selectedBooking.age || '-'} / ${selectedBooking.gender || '-'}`} />
               <DetailRow label="Weight" value={selectedBooking.weightKg != null ? `${selectedBooking.weightKg} kg` : '-'} />
@@ -745,7 +876,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                       label="Meeting status"
                       value={selectedBooking.meetingStatus}
                       onChange={handleMeetingStatusChange}
-                      disabled={meetingUpdating || selectedBooking.meetingStatus === 'MEETING_COMPLETED'}
+                      disabled={meetingUpdating || selectedBooking.meetingStatus === 'MEETING_COMPLETED' || selectedBooking.disabled}
                     >
                       <MenuItem value="MEETING_PENDING">Meeting Pending</MenuItem>
                       <MenuItem value="MEETING_COMPLETED">Meeting Completed</MenuItem>
@@ -790,88 +921,94 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                 </Stack>
 
                 {/* Direct File Uploader Box */}
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    p: 2,
-                    mb: 2,
-                    bgcolor: '#ffffff',
-                    borderRadius: 2,
-                    borderStyle: 'dashed',
-                    borderColor: '#cbd5e1'
-                  }}
-                >
-                  <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Upload New Client Document
-                  </Typography>
+                {!selectedBooking.disabled ? (
+                  <Paper
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      mb: 2,
+                      bgcolor: '#ffffff',
+                      borderRadius: 2,
+                      borderStyle: 'dashed',
+                      borderColor: '#cbd5e1'
+                    }}
+                  >
+                    <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1.5, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Upload New Client Document
+                    </Typography>
 
-                  <Stack spacing={1.5}>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
-                      <TextField
-                        select
-                        size="small"
-                        label="Document Type"
-                        value={selectedDocType}
-                        onChange={(e) => setSelectedDocType(e.target.value)}
-                        sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}
-                      >
-                        <MenuItem value="DIET_CHART">🥗 Diet Chart</MenuItem>
-                        <MenuItem value="LAB_REPORT">🩸 Lab / Blood Report</MenuItem>
-                        <MenuItem value="PRESCRIPTION">💊 Prescription</MenuItem>
-                        <MenuItem value="MEAL_PHOTO">📸 Meal Photo</MenuItem>
-                        <MenuItem value="OTHER">📄 Other Document</MenuItem>
-                      </TextField>
+                    <Stack spacing={1.5}>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                        <TextField
+                          select
+                          size="small"
+                          label="Document Type"
+                          value={selectedDocType}
+                          onChange={(e) => setSelectedDocType(e.target.value)}
+                          sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}
+                        >
+                          <MenuItem value="DIET_CHART">🥗 Diet Chart</MenuItem>
+                          <MenuItem value="LAB_REPORT">🩸 Lab / Blood Report</MenuItem>
+                          <MenuItem value="PRESCRIPTION">💊 Prescription</MenuItem>
+                          <MenuItem value="MEAL_PHOTO">📸 Meal Photo</MenuItem>
+                          <MenuItem value="OTHER">📄 Other Document</MenuItem>
+                        </TextField>
 
-                      <Button
-                        variant="outlined"
-                        component="label"
-                        size="small"
-                        startIcon={<CloudUploadIcon />}
-                        sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0, height: 40 }}
-                      >
-                        {selectedFile ? 'Change File' : 'Choose File'}
-                        <input
-                          id="client-vault-file-input"
-                          type="file"
-                          hidden
-                          accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setSelectedFile(e.target.files[0]);
-                            }
-                          }}
+                        <Button
+                          variant="outlined"
+                          component="label"
+                          size="small"
+                          startIcon={<CloudUploadIcon />}
+                          sx={{ textTransform: 'none', fontWeight: 600, flexShrink: 0, height: 40 }}
+                        >
+                          {selectedFile ? 'Change File' : 'Choose File'}
+                          <input
+                            id="client-vault-file-input"
+                            type="file"
+                            hidden
+                            accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setSelectedFile(e.target.files[0]);
+                              }
+                            }}
+                          />
+                        </Button>
+
+                        {selectedFile && (
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                            {selectedFile.name} ({formatBytes(selectedFile.size)})
+                          </Typography>
+                        )}
+                      </Stack>
+
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label="Note (Optional)"
+                          placeholder="e.g. Week 1 High Protein Diet Plan"
+                          value={docNotes}
+                          onChange={(e) => setDocNotes(e.target.value)}
                         />
-                      </Button>
 
-                      {selectedFile && (
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.main', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-                          {selectedFile.name} ({formatBytes(selectedFile.size)})
-                        </Typography>
-                      )}
+                        <Button
+                          variant="contained"
+                          size="small"
+                          disabled={!selectedFile || uploadingDoc}
+                          onClick={handleUploadDocument}
+                          sx={{ textTransform: 'none', fontWeight: 700, px: 2.5, height: 40, flexShrink: 0 }}
+                        >
+                          {uploadingDoc ? <CircularProgress size={20} color="inherit" /> : 'Upload to Vault'}
+                        </Button>
+                      </Stack>
                     </Stack>
-
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems="center">
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Note (Optional)"
-                        placeholder="e.g. Week 1 High Protein Diet Plan"
-                        value={docNotes}
-                        onChange={(e) => setDocNotes(e.target.value)}
-                      />
-
-                      <Button
-                        variant="contained"
-                        size="small"
-                        disabled={!selectedFile || uploadingDoc}
-                        onClick={handleUploadDocument}
-                        sx={{ textTransform: 'none', fontWeight: 700, px: 2.5, height: 40, flexShrink: 0 }}
-                      >
-                        {uploadingDoc ? <CircularProgress size={20} color="inherit" /> : 'Upload to Vault'}
-                      </Button>
-                    </Stack>
-                  </Stack>
-                </Paper>
+                  </Paper>
+                ) : (
+                  <Alert severity="info" sx={{ mb: 2, fontSize: '0.85rem' }}>
+                    Document uploads are disabled for this test/disabled booking.
+                  </Alert>
+                )}
 
                 {/* Uploaded Documents List */}
                 <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
@@ -971,6 +1108,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                     placeholder="Health history, food allergies, dietary restrictions, follow-up progress..."
                     value={workspaceNotes}
                     onChange={(e) => setWorkspaceNotes(e.target.value)}
+                    disabled={selectedBooking.disabled}
                   />
 
                   <TextField
@@ -981,13 +1119,14 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                     value={workspaceDriveUrl}
                     onChange={(e) => setWorkspaceDriveUrl(e.target.value)}
                     helperText="Optional external link for existing folders"
+                    disabled={selectedBooking.disabled}
                   />
 
                   <Box sx={{ textAlign: 'right' }}>
                     <Button
                       variant="contained"
                       size="small"
-                      disabled={workspaceSaving}
+                      disabled={workspaceSaving || selectedBooking.disabled}
                       onClick={async () => {
                         try {
                           setWorkspaceSaving(true);
@@ -1016,15 +1155,21 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
               {!isEmployee && (
                 <>
                   <Box sx={{ py: 1.5 }}>
-                    <Button
-                      fullWidth
-                      variant="contained"
-                      startIcon={<PaymentOutlinedIcon />}
-                      disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
-                      onClick={openPlanDialog}
-                    >
-                      Assign Plan / Payment
-                    </Button>
+                    {!selectedBooking.disabled ? (
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        startIcon={<PaymentOutlinedIcon />}
+                        disabled={selectedBooking.meetingStatus !== 'MEETING_COMPLETED'}
+                        onClick={openPlanDialog}
+                      >
+                        Assign Plan / Payment
+                      </Button>
+                    ) : (
+                      <Alert severity="info" sx={{ fontSize: '0.85rem' }}>
+                        Plan assignment and payment links are disabled for this test/disabled booking.
+                      </Alert>
+                    )}
                   </Box>
 
                   {selectedPaymentLinks.length > 0 && (
@@ -1054,7 +1199,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             {selectedBooking?.meetingStatus === 'MEETING_COMPLETED' && (
               <Chip
                 size="small"
@@ -1063,6 +1208,30 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                 label="Consultation Completed"
                 sx={{ fontWeight: 600 }}
               />
+            )}
+            {!isEmployee && selectedBooking && (
+              <>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color={selectedBooking.disabled ? "success" : "inherit"}
+                  startIcon={selectedBooking.disabled ? <CheckCircleOutlineIcon /> : <BlockIcon />}
+                  onClick={() => handleToggleDisabled(selectedBooking)}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  {selectedBooking.disabled ? "Enable Booking" : "Disable (Test)"}
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteOutlineIcon />}
+                  onClick={() => handleDeleteBooking(selectedBooking)}
+                  sx={{ textTransform: "none", fontWeight: 600 }}
+                >
+                  Delete
+                </Button>
+              </>
             )}
           </Box>
           <Stack direction="row" spacing={1.5}>

@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Box } from "@mui/material";
 import { BookingProvider } from "./context/BookingContext";
 import { SiteContentProvider } from "./context/SiteContentContext";
@@ -23,7 +23,18 @@ import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
 import LegalPage from "./components/LegalPage";
 
-function MainSite() {
+function MainSite({ autoOpenBooking = false }) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const shouldAutoOpen =
+    autoOpenBooking ||
+    location.pathname === "/book" ||
+    location.pathname === "/payment" ||
+    location.pathname === "/consultation" ||
+    location.pathname === "/book-now" ||
+    searchParams.get("book") === "true" ||
+    searchParams.get("payment") === "true";
+
   // Header + BannerStrip are combined into a single fixed stack (banner on
   // top, header below it). Since the banner can appear/disappear/rotate,
   // we measure the stack's real height and feed it to Hero so its top
@@ -43,7 +54,7 @@ function MainSite() {
   }, []);
 
   return (
-    <BookingProvider>
+    <BookingProvider initialOpen={shouldAutoOpen}>
       <Box
         sx={{
           position: "relative",
@@ -94,7 +105,7 @@ function MainSite() {
         <BookingErrorBoundary>
           <BookingFlow />
         </BookingErrorBoundary>
-        <OfferModal />
+        {!shouldAutoOpen && <OfferModal />}
       </Box>
     </BookingProvider>
   );
@@ -107,12 +118,17 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<MainSite />} />
+            <Route path="/book" element={<MainSite autoOpenBooking />} />
+            <Route path="/payment" element={<MainSite autoOpenBooking />} />
+            <Route path="/consultation" element={<MainSite autoOpenBooking />} />
+            <Route path="/book-now" element={<MainSite autoOpenBooking />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/privacy-policy" element={<LegalPage type="privacy" />} />
             <Route path="/terms-and-conditions" element={<LegalPage type="terms" />} />
             <Route path="/refund-policy" element={<LegalPage type="refund" />} />
             <Route path="/cancellation-refund-policy" element={<LegalPage type="refund" />} />
             <Route path="/disclaimer" element={<LegalPage type="disclaimer" />} />
+            <Route path="*" element={<MainSite />} />
           </Routes>
         </BrowserRouter>
       </SiteContentProvider>

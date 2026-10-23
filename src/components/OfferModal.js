@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { Dialog, Box, IconButton, Fab, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import { getLocalDateString } from "../helper/dateHelper";
 import { colors, gradientBrand } from "../theme";
 import { apiBaseUrl } from "../data/siteData";
+import { useBooking } from "../context/BookingContext";
 import ProgramEnrollModal from "./ProgramEnrollModal";
 
 const AUTO_OPEN_DELAY_MS = 1500;
@@ -29,12 +31,31 @@ function isOfferCurrentlyActive(offer) {
 }
 
 export default function OfferModal() {
+  const location = useLocation();
+  const { isOpen: isBookingOpen } = useBooking();
   const [offer, setOffer] = useState(null);
   const [open, setOpen] = useState(false);
   const [everShown, setEverShown] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
 
+  const searchParams = new URLSearchParams(location.search);
+  const isDirectBooking =
+    location.pathname === "/book" ||
+    location.pathname === "/payment" ||
+    location.pathname === "/consultation" ||
+    location.pathname === "/book-now" ||
+    searchParams.get("book") === "true" ||
+    searchParams.get("payment") === "true";
+
+  // Auto-close offer modal if booking flow is opened
   useEffect(() => {
+    if (isBookingOpen && open) {
+      setOpen(false);
+    }
+  }, [isBookingOpen, open]);
+
+  useEffect(() => {
+    if (isDirectBooking) return;
     let timer;
 
     fetch(`${apiBaseUrl}/api/banners`)
@@ -49,8 +70,10 @@ export default function OfferModal() {
         setOffer(modalOffer);
 
         timer = setTimeout(() => {
-          setOpen(true);
-          setEverShown(true);
+          if (!isBookingOpen) {
+            setOpen(true);
+            setEverShown(true);
+          }
         }, AUTO_OPEN_DELAY_MS);
       })
       .catch((e) => {
@@ -63,7 +86,7 @@ export default function OfferModal() {
         clearTimeout(timer);
       }
     };
-  }, []);
+  }, [isDirectBooking, isBookingOpen]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
@@ -74,7 +97,7 @@ export default function OfferModal() {
     setEverShown(true);
   }, []);
 
-  if (!offer) return null;
+  if (isDirectBooking || !offer) return null;
 
   return (
     <>
@@ -167,7 +190,7 @@ export default function OfferModal() {
                 }}
               >
                 {offer.buttonText ||
-                  `Enroll Now${offer.priceInr ? ` · ₹${offer.priceInr}` : ""}`}
+                  `Enroll Now${offer.priceInr ? ` Â· â‚¹${offer.priceInr}` : ""}`}
               </Button>
             </Box>
           ) : offer.linkUrl ? (
@@ -223,7 +246,7 @@ export default function OfferModal() {
         />
       )}
 
-      {everShown && !open && (
+      {everShown && !open && !isBookingOpen && (
         <Fab
           onClick={handleReopen}
           size="medium"

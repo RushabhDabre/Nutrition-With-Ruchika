@@ -1,9 +1,15 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const BookingContext = createContext(null);
 
-export function BookingProvider({ children }) {
-  const [isOpen, setIsOpen] = useState(false);
+export function BookingProvider({ children, initialOpen = false }) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
+
+  useEffect(() => {
+    if (initialOpen) {
+      setIsOpen(true);
+    }
+  }, [initialOpen]);
 
   const openBooking = () => setIsOpen(true);
   const closeBooking = () => setIsOpen(false);
