@@ -89,7 +89,7 @@ export default function Contact() {
         <SectionTitle
           eyebrow="Get In Touch"
           title="Book Your Consultation"
-          subtitle="Fill the form below or reach out directly â€” I typically respond within 24 hours"
+          subtitle="Fill the form below or reach out directly — I typically respond within 24 hours"
         />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '0.9fr 1.1fr' }, gap: 6.25 }}>
           <Box sx={{ display: 'grid', gap: 2.25 }}>
@@ -175,7 +175,7 @@ export default function Contact() {
                 disabled={loading}
                 sx={{ background: gradientBrand, py: 1.6, fontSize: '1rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
               >
-                {loading ? 'Sending Request...' : 'Request Consultation â†’'}
+                {loading ? 'Sending Request...' : 'Request Consultation →'}
               </Button>
             </Box>
           </Paper>

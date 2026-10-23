@@ -22,7 +22,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 const trustStats = [
   { number: "500+", label: "Clients Guided" },
   { number: "3+", label: "Years Experience" },
-  { number: "4.9â˜…", label: "Client Rating" },
+  { number: "4.9★", label: "Client Rating" },
 ];
 
 /** Matches youtube.com/watch?v=, youtu.be/, and youtube.com/embed/ formats. */
@@ -56,7 +56,7 @@ function VideoEmbed({ url }) {
   }, []);
 
   if (!url) {
-    return <Typography sx={{ fontSize: "3.5rem" }}>ðŸŽ¥</Typography>;
+    return <Typography sx={{ fontSize: "3.5rem" }}>🎥</Typography>;
   }
 
   const youtubeId = extractYouTubeId(url);
@@ -277,7 +277,7 @@ export default function Hero({ topOffset = 96 }) {
         >
           <Box>
             <Chip
-              label="ðŸŒ¿ Certified Nutritionist & Dietitian"
+              label="🌿 Certified Nutritionist & Dietitian"
               sx={{
                 bgcolor: "rgba(99,102,241,0.1)",
                 color: colors.primary,
@@ -414,7 +414,7 @@ export default function Hero({ topOffset = 96 }) {
                   color: colors.white, fontSize: '1.2rem',
                 }}
               >
-                ðŸŽ“
+                🎓
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>M.Sc. Nutrition</Typography>

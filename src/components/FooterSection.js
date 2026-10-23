@@ -262,7 +262,7 @@ export function Footer() {
           }}
         >
           <Typography sx={{ fontSize: "inherit", color: "inherit" }}>
-            Nutrition with Ruchika | Nutritionist & Dietitian Â©{" "}
+            Nutrition with Ruchika | Nutritionist & Dietitian ©{" "}
             {new Date().getFullYear()}
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1.5, sm: 2 } }}>

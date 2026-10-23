@@ -190,7 +190,7 @@ export default function OfferModal() {
                 }}
               >
                 {offer.buttonText ||
-                  `Enroll Now${offer.priceInr ? ` Â· â‚¹${offer.priceInr}` : ""}`}
+                  `Enroll Now${offer.priceInr ? ` · ₹${offer.priceInr}` : ""}`}
               </Button>
             </Box>
           ) : offer.linkUrl ? (
