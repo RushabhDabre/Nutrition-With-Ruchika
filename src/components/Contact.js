@@ -9,11 +9,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { colors, gradientBrand, gradientPrimary } from '../theme';
 import { concernOptions, apiBaseUrl } from '../data/siteData';
 import { useSiteContent } from '../context/SiteContentContext';
+import { getWhatsAppUrl, trackWhatsAppClick, trackEvent } from '../utils/analytics';
 import SectionTitle from './SectionTitle';
 
 const initialForm = { name: '', phone: '', email: '', concern: '', message: '' };
 
-function ContactCard({ icon, iconBg, title, subtitle, href }) {
+function ContactCard({ icon, iconBg, title, subtitle, href, onClick }) {
   return (
     <Paper
       elevation={0}
@@ -27,6 +28,7 @@ function ContactCard({ icon, iconBg, title, subtitle, href }) {
       href={href}
       target={href ? '_blank' : undefined}
       rel={href ? 'noreferrer' : undefined}
+      onClick={onClick}
     >
       <Box
         sx={{
@@ -46,7 +48,10 @@ function ContactCard({ icon, iconBg, title, subtitle, href }) {
 
 export default function Contact() {
   const { contact } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
@@ -69,6 +74,7 @@ export default function Contact() {
         throw new Error('Failed to send inquiry. Please reach out via WhatsApp directly.');
       }
       setSubmitted(true);
+      trackEvent('Lead', { content_name: 'Contact Form Submission', concern: form.concern });
       setForm(initialForm);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please message me on WhatsApp.');
@@ -83,7 +89,7 @@ export default function Contact() {
         <SectionTitle
           eyebrow="Get In Touch"
           title="Book Your Consultation"
-          subtitle="Fill the form below or reach out directly — I typically respond within 24 hours"
+          subtitle="Fill the form below or reach out directly â€” I typically respond within 24 hours"
         />
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '0.9fr 1.1fr' }, gap: 6.25 }}>
           <Box sx={{ display: 'grid', gap: 2.25 }}>
@@ -93,6 +99,7 @@ export default function Contact() {
               title="WhatsApp"
               subtitle={`+91 ${contact.whatsappNumber.slice(2)} — fastest way to reach me`}
               href={whatsappLink}
+              onClick={() => trackWhatsAppClick("Contact Section")}
             />
             <ContactCard
               icon={<InstagramIcon />}
@@ -168,7 +175,7 @@ export default function Contact() {
                 disabled={loading}
                 sx={{ background: gradientBrand, py: 1.6, fontSize: '1rem', boxShadow: '0 4px 15px rgba(99,102,241,0.3)' }}
               >
-                {loading ? 'Sending Request...' : 'Request Consultation →'}
+                {loading ? 'Sending Request...' : 'Request Consultation â†’'}
               </Button>
             </Box>
           </Paper>

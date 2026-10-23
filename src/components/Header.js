@@ -17,6 +17,7 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { colors } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
+import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
 
 const navItems = [
   { label: "About", href: "#about" },
@@ -32,7 +33,10 @@ export default function Header() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { openBooking } = useBooking();
   const { contact } = useSiteContent();
-  const whatsappLink = `https://wa.me/${contact.whatsappNumber}`;
+  const whatsappLink = getWhatsAppUrl(
+    contact.whatsappNumber,
+    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
+  );
 
   return (
     <AppBar
@@ -116,6 +120,7 @@ export default function Header() {
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackWhatsAppClick("Header CTA")}
               variant="contained"
               startIcon={<WhatsAppIcon />}
               sx={{
@@ -167,6 +172,10 @@ export default function Header() {
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
+              onClick={() => {
+                setDrawerOpen(false);
+                trackWhatsAppClick("Mobile Drawer");
+              }}
             >
               <ListItemText
                 primary="WhatsApp"

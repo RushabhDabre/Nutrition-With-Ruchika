@@ -59,7 +59,7 @@ export default function ClientAssignmentDialog({
         getBookings(),
         getEmployeeAssignedClients(employee.id),
       ]);
-      setAllBookings(Array.isArray(bookings) ? bookings : []);
+      setAllBookings(Array.isArray(bookings) ? bookings.filter((b) => !b?.disabled) : []);
       setSelectedIds(new Set(Array.isArray(assignedIds) ? assignedIds : []));
     } catch (err) {
       showSnackbar(err.message || "Failed to load client data.", "error");

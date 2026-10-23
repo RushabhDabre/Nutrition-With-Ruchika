@@ -85,13 +85,13 @@ export function exportClientsToExcel(bookings = [], planPayments = []) {
     const planPaidDate = paidPayment?.paidAt ? formatDate(paidPayment.paidAt) : (paidPayment?.status === "PAID" ? formatDate(paidPayment.createdAt) : "");
     const planPaymentId = paidPayment?.razorpayPaymentId || (paidPayment?.status === "PAID" ? "OFFLINE / DIRECT" : "");
 
-    const consultFee = Number(b.amountPaidInr || 0);
-    const totalPaid = consultFee + (paidPayment?.status === "PAID" ? planPrice : 0);
+    const consultFee = b.disabled ? 0 : Number(b.amountPaidInr || 0);
+    const totalPaid = b.disabled ? 0 : consultFee + (paidPayment?.status === "PAID" ? planPrice : 0);
 
     const cleanPhone = String(b.phone || "").replace(/\D/g, "");
 
     return [
-      b.name || "",
+      (b.name || "") + (b.disabled ? " (TEST)" : ""),
       cleanPhone || "",
       b.email || "",
       b.age ? Number(b.age) : "",
@@ -102,7 +102,7 @@ export function exportClientsToExcel(bookings = [], planPayments = []) {
       b.medication || "",
       formatDate(b.bookingDate),
       b.slotStartTime ? String(b.slotStartTime).substring(0, 5) : "",
-      b.status || "",
+      b.disabled ? "DISABLED (TEST)" : (b.status || ""),
       b.meetingStatus === "MEETING_COMPLETED" ? "Completed" : "Scheduled",
       consultFee,
       planName,
@@ -111,7 +111,7 @@ export function exportClientsToExcel(bookings = [], planPayments = []) {
       planPaidDate,
       planPaymentId,
       totalPaid,
-      b.clinicalNotes || "",
+      (b.disabled ? "[DISABLED TEST BOOKING] " : "") + (b.clinicalNotes || ""),
       b.driveFolderUrl || "",
       formatDate(b.createdAt)
     ];
