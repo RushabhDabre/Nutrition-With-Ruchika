@@ -346,7 +346,7 @@ export default function ProgramEnrollModal({ open, onClose, plan }) {
                 fontWeight: 700,
                 fontSize: "1rem",
                 borderRadius: 2,
-                boxShadow: "0 4px 15px rgba(99,102,241,0.35)",
+                boxShadow: "0 4px 15px rgba(56, 75, 50, 0.3)",
               }}
             >
               {loading ? (

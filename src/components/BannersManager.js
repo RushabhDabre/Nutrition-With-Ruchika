@@ -555,7 +555,7 @@ export default function BannersManager() {
               mb: 2.5,
               borderRadius: 2.5,
               bgcolor: form.paymentRequired
-                ? "rgba(99, 102, 241, 0.05)"
+                ? "rgba(56, 75, 50, 0.05)"
                 : "#f8fafc",
               border: `1px solid ${form.paymentRequired ? colors.primary : "#e2e8f0"}`,
             }}

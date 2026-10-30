@@ -1,429 +1,594 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
   Typography,
   Button,
-  Chip,
   Stack,
+  Dialog,
   IconButton,
+  Skeleton,
 } from "@mui/material";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import EventIcon from "@mui/icons-material/Event";
-import { colors, gradientBrand } from "../theme";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import CloseIcon from "@mui/icons-material/Close";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { colors } from "../theme";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
-import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
-import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import FullscreenIcon from "@mui/icons-material/Fullscreen";
-import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 
-const trustStats = [
-  { number: "500+", label: "Clients Guided" },
-  { number: "3+", label: "Years Experience" },
-  { number: "4.9★", label: "Client Rating" },
-];
-
-/** Matches youtube.com/watch?v=, youtu.be/, and youtube.com/embed/ formats. */
 function extractYouTubeId(url) {
   if (!url) return null;
   const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   );
   return match ? match[1] : null;
 }
 
-/** YouTube link -> autoplaying muted looping embed. Anything else (e.g. a
- *  direct Cloudinary .mp4 URL) -> native HTML5 video, same behavior. */
-function VideoEmbed({ url }) {
-  const iframeRef = useRef(null);
-  const videoRef = useRef(null);
+const clinicalPillars = [
+  { icon: "🔬", label: "M.Pharm Pharmacology", sub: "Clinical Biochemical Science" },
+  { icon: "🍲", label: "100% Ghar Ka Khana", sub: "Zero Powders or Starvation" },
+  { icon: "🌸", label: "PCOS & Gut Reversal", sub: "Targeted Hormonal Protocols" },
+  { icon: "📊", label: "Lab Report Analysis", sub: "Root-Cause Biomarker Tracking" },
+  { icon: "💬", label: "Daily WhatsApp Mentorship", sub: "Continuous 1:1 Accountability" },
+];
 
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
-
-  if (!url) {
-    return <Typography sx={{ fontSize: "3.5rem" }}>🎥</Typography>;
-  }
-
-  const youtubeId = extractYouTubeId(url);
-
-  const sendYouTubeCommand = (func, args = []) => {
-    if (!iframeRef.current) return;
-
-    iframeRef.current.contentWindow?.postMessage(
-      JSON.stringify({
-        event: "command",
-        func,
-        args,
-      }),
-      "https://www.youtube.com",
-    );
-  };
-
-  const handleMuteToggle = () => {
-    if (youtubeId) {
-      if (isMuted) {
-        sendYouTubeCommand("unMute");
-        setIsMuted(false);
-      } else {
-        sendYouTubeCommand("mute");
-        setIsMuted(true);
-      }
-    } else if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
-
-  const handleFullscreen = async () => {
-    const element = youtubeId ? iframeRef.current : videoRef.current;
-
-    if (!element) return;
-
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await element.requestFullscreen();
-      }
-    } catch (error) {
-      console.error("Fullscreen error:", error);
-    }
-  };
-
-  const embedUrl = youtubeId
-    ? `https://www.youtube.com/embed/${youtubeId}` +
-      `?autoplay=1` +
-      `&mute=0` +
-      `&controls=0` +
-      `&loop=1` +
-      `&playlist=${youtubeId}` +
-      `&fs=1` +
-      `&disablekb=1` +
-      `&enablejsapi=1` +
-      `&playsinline=1` +
-      `&rel=0`
-    : null;
-
-  return (
-    <Box
-      className="video-container"
-      sx={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      {youtubeId ? (
-        <Box
-          component="iframe"
-          ref={iframeRef}
-          src={embedUrl}
-          title="Introduction video"
-          allow="autoplay; encrypted-media; picture-in-picture"
-          allowFullScreen
-          sx={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            display: "block",
-          }}
-        />
-      ) : (
-        <Box
-          component="video"
-          ref={videoRef}
-          src={url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          sx={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-          }}
-        />
-      )}
-
-      {/* Custom controls */}
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          position: "absolute",
-          right: 16,
-          bottom: 16,
-          zIndex: 10,
-
-          opacity: 0,
-          visibility: "hidden",
-          transition: "opacity 0.25s ease, visibility 0.25s ease",
-
-          ".video-container:hover &": {
-            opacity: 1,
-            visibility: "visible",
-          },
-        }}
-      >
-        <IconButton
-          onClick={handleMuteToggle}
-          aria-label={isMuted ? "Unmute video" : "Mute video"}
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: "rgba(0,0,0,0.25)",
-            color: "#fff",
-            backdropFilter: "blur(4px)",
-            "&:hover": {
-              bgcolor: "rgba(0,0,0,0.75)",
-            },
-          }}
-        >
-          {isMuted ? <VolumeOffIcon /> : <VolumeUpIcon />}
-        </IconButton>
-
-        <IconButton
-          onClick={handleFullscreen}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: "rgba(0,0,0,0.25)",
-            color: "#fff",
-            backdropFilter: "blur(4px)",
-            "&:hover": {
-              bgcolor: "rgba(0,0,0,0.75)",
-            },
-          }}
-        >
-          {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-        </IconButton>
-      </Stack>
-    </Box>
-  );
-}
-
-export default function Hero({ topOffset = 96 }) {
+export default function Hero({ topOffset = 80 }) {
   const { openBooking } = useBooking();
-  const { contact, hero } = useSiteContent();
-  const whatsappLink = getWhatsAppUrl(
-    contact.whatsappNumber,
-    "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
-  );
+  const { hero } = useSiteContent();
+  const [videoOpen, setVideoOpen] = useState(false);
+  const [heroImgLoaded, setHeroImgLoaded] = useState(false);
+
+  const youtubeId = extractYouTubeId(hero?.videoUrl);
 
   return (
     <Box
       id="home"
       sx={{
-        position: "relative",
-        overflow: "hidden",
-        pt: `${topOffset + 46}px`,
-        pb: 11,
-        // background: `linear-gradient( 180deg, rgba(245, 246, 255, 0.8) 0%, rgba(255, 255, 255, 0.8) 100%)`,
+        bgcolor: colors.bgCream,
+        minHeight: { xs: "auto", md: "100vh" },
+        display: "flex",
+        flexDirection: "column",
+        pt: {
+          xs: `${topOffset + 4}px`,
+          md: `${topOffset + 6}px`,
+        },
+        "@keyframes heroFadeUp": {
+          "0%": { opacity: 0, transform: "translateY(24px)" },
+          "100%": { opacity: 1, transform: "translateY(0)" },
+        },
+        "@keyframes heroFadeScale": {
+          "0%": { opacity: 0, transform: "scale(1.04)" },
+          "100%": { opacity: 1, transform: "scale(1)" },
+        },
+        "@keyframes gentleFloat": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          "& *": {
+            animation: "none !important",
+            transition: "none !important",
+          },
+        },
       }}
     >
-      {/* <Box
-          component="img"
-          // src="/assets/images/HeroBg.png"
-          alt=""
-          aria-hidden="true"
-          sx={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: {
-              xs: "center center",
-              md: "center center",
-            },
-            opacity: 0.55,
-            pointerEvents: "none",
-            userSelect: "none",
-            zIndex: 0,
-          }}
-        /> */}
-      <Container
-        maxWidth="lg"
+      {/* Upper Hero Grid - Proportional, clean, no awkward blank voids */}
+      <Box
         sx={{
-          position: "relative",
-          zIndex: 1,
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          py: { xs: 1, md: 1.5 },
         }}
       >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "0.85fr 1.15fr" },
-            gap: { xs: 5, md: 6 },
-            alignItems: "center",
-          }}
-        >
-          <Box>
-            <Chip
-              label="🌿 Certified Nutritionist & Dietitian"
-              sx={{
-                bgcolor: "rgba(99,102,241,0.1)",
-                color: colors.primary,
-                fontWeight: 700,
-                mb: 2.5,
-                px: 1,
-              }}
-            />
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: "2.2rem", md: "3.1rem" },
-                lineHeight: 1.15,
-                mb: 2.5,
-              }}
-            >
-              {hero.headline}{" "}
-              <Box
-                component="span"
+        <Container maxWidth="lg">
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1.08fr 0.92fr" },
+              gap: { xs: 2.5, md: 4 },
+              alignItems: "center",
+            }}
+          >
+            {/* Left Column: Heading, Subhead & Actions */}
+            <Box>
+              <Typography
+                component="h1"
                 sx={{
-                  background: gradientBrand,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
+                  fontSize: { xs: "1.95rem", sm: "2.35rem", md: "2.75rem", lg: "2.95rem" },
+                  fontWeight: 700,
+                  color: colors.textDark,
+                  lineHeight: 1.15,
+                  letterSpacing: "-0.015em",
+                  mb: 1.25,
+                  animation: "heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s backwards",
                 }}
               >
-                {hero.headlineHighlight}
-              </Box>
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: "1.15rem",
-                color: colors.textLight,
-                mb: 4,
-                lineHeight: 1.8,
-              }}
-            >
-              {hero.tagline}
-            </Typography>
+                Find Your <br />
+                <Box component="span" sx={{ color: colors.primaryDark, fontWeight: 800 }}>
+                  Healthy Balance
+                </Box>{" "}
+                with Us
+              </Typography>
 
-            <Stack
-              direction="row"
-              spacing={2}
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ mb: 5 }}
-            >
-              <Button
-                onClick={openBooking}
-                variant="contained"
-                size="large"
-                startIcon={<EventIcon />}
+              <Typography
                 sx={{
-                  background: gradientBrand,
-                  py: 1.7,
-                  px: 4,
-                  boxShadow: "0 4px 15px rgba(99,102,241,0.3)",
+                  fontSize: { xs: "0.86rem", md: "0.93rem" },
+                  color: colors.textMuted,
+                  lineHeight: 1.55,
+                  mb: 2,
+                  maxWidth: 450,
+                  animation: "heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.22s backwards",
                 }}
               >
-                Book Consultation
-              </Button>
-              <Button
-                href={whatsappLink}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => trackWhatsAppClick("Hero Button")}
-                variant="contained"
-                size="large"
-                startIcon={<WhatsAppIcon />}
-                sx={{
-                  bgcolor: colors.whatsapp,
-                  py: 1.7,
-                  px: 4,
-                  boxShadow: "0 4px 15px rgba(37,211,102,0.3)",
-                  "&:hover": { bgcolor: "#1fb356" },
-                }}
-              >
-                WhatsApp Me
-              </Button>
-            </Stack>
+                Personalized, science-backed nutrition plans designed to help you
+                reach your goals sustainably. From clinical PCOS and gut care to
+                everyday home meals — we guide you every step of the way.
+              </Typography>
 
-            <Stack direction="row" spacing={4} flexWrap="wrap" useFlexGap>
-              {trustStats.map((t) => (
-                <Box key={t.label}>
-                  <Typography
+              {/* CTAs */}
+              <Stack
+                direction="row"
+                spacing={1.5}
+                alignItems="center"
+                sx={{
+                  mb: 2,
+                  animation: "heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.34s backwards",
+                }}
+              >
+                <Button
+                  onClick={openBooking}
+                  variant="contained"
+                  sx={{
+                    bgcolor: colors.primaryDark,
+                    color: "#ffffff",
+                    px: 3.2,
+                    py: 1.15,
+                    borderRadius: "28px",
+                    fontSize: "0.86rem",
+                    fontWeight: 600,
+                    boxShadow: "0 6px 18px rgba(56, 75, 50, 0.22)",
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                    "&:hover": {
+                      bgcolor: colors.darkGreenHover,
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 10px 24px rgba(56, 75, 50, 0.35)",
+                    },
+                  }}
+                >
+                  Book Consultation
+                </Button>
+
+                <Button
+                  onClick={() => setVideoOpen(true)}
+                  variant="text"
+                  startIcon={
+                    <Box
+                      className="play-icon-box"
+                      sx={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: "50%",
+                        border: `1.5px solid ${colors.primaryDark}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        transition: "all 0.25s ease",
+                      }}
+                    >
+                      <PlayArrowRoundedIcon sx={{ fontSize: 17, color: colors.primaryDark }} />
+                    </Box>
+                  }
+                  sx={{
+                    color: colors.textDark,
+                    fontWeight: 500,
+                    fontSize: "0.86rem",
+                    px: 1.25,
+                    "&:hover": {
+                      bgcolor: "transparent",
+                      opacity: 0.85,
+                      "& .play-icon-box": {
+                        transform: "scale(1.1)",
+                        boxShadow: "0 0 0 6px rgba(56, 75, 50, 0.14)",
+                      },
+                    },
+                  }}
+                >
+                  Watch My Story
+                </Button>
+              </Stack>
+
+              {/* Avatars & Social Proof */}
+              <Stack
+                direction="row"
+                spacing={1.5}
+                alignItems="center"
+                sx={{
+                  animation: "heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.46s backwards",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    component="img"
+                    src="/assets/images/profilePhoto.jpg"
+                    alt="Client"
                     sx={{
-                      fontSize: "1.5rem",
-                      fontWeight: 800,
-                      color: colors.primary,
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      border: "2px solid #ffffff",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <Box
+                    sx={{
+                      ml: -1.1,
+                      width: 32,
+                      height: 32,
+                      borderRadius: "50%",
+                      bgcolor: colors.primaryDark,
+                      color: "#ffffff",
+                      border: "2px solid #ffffff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.66rem",
+                      fontWeight: 700,
                     }}
                   >
-                    {t.number}
+                    500+
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: "0.88rem",
+                      fontWeight: 700,
+                      color: colors.textDark,
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    500+ Happy Clients
                   </Typography>
                   <Typography
-                    sx={{ fontSize: "0.8rem", color: colors.textLight }}
+                    sx={{ fontSize: "0.74rem", color: colors.textLight }}
                   >
-                    {t.label}
+                    4.9★ verified Google & intake rating
                   </Typography>
                 </Box>
-              ))}
-            </Stack>
-          </Box>
+              </Stack>
+            </Box>
 
-          <Box sx={{ position: "relative" }}>
+            {/* Right Column: Full-width natural image with left opacity slope (NO BOX, NO BORDER) */}
             <Box
               sx={{
-                background: gradientBrand,
-                borderRadius: "10px",
-                aspectRatio: "16/10",
+                position: "relative",
                 display: "flex",
+                justifyContent: { xs: "center", md: "flex-end" },
                 alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 30px 60px rgba(99,102,241,0.25)",
-                overflow: "hidden",
                 width: "100%",
               }}
             >
-              <VideoEmbed url={hero.videoUrl} />
+              <Box
+                sx={{
+                  position: "relative",
+                  width: "100%",
+                  maxWidth: { xs: 360, sm: 440, md: 490, lg: 530 },
+                  animation: "heroFadeScale 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.15s backwards",
+                  maskImage: {
+                    xs: "none",
+                    md: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 8%, rgba(0,0,0,0.4) 22%, rgba(0,0,0,0.85) 38%, #000000 55%)",
+                  },
+                  WebkitMaskImage: {
+                    xs: "none",
+                    md: "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.08) 8%, rgba(0,0,0,0.4) 22%, rgba(0,0,0,0.85) 38%, #000000 55%)",
+                  },
+                }}
+              >
+                {!heroImgLoaded && (
+                  <Skeleton
+                    variant="rectangular"
+                    width="100%"
+                    height="100%"
+                    sx={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      bgcolor: "rgba(56, 75, 50, 0.05)",
+                      borderRadius: { xs: "20px", md: 0 },
+                    }}
+                  />
+                )}
+                <Box
+                  component="img"
+                  src="/assets/images/Hero.jpg"
+                  alt="Dietitian Ruchika Shanware"
+                  onLoad={() => setHeroImgLoaded(true)}
+                  sx={{
+                    width: "100%",
+                    height: { xs: 300, sm: 350, md: 390, lg: 420 },
+                    objectFit: "cover",
+                    objectPosition: "center 15%",
+                    display: "block",
+                    borderRadius: { xs: "20px", md: 0 },
+                    opacity: heroImgLoaded ? 1 : 0,
+                    transition: "opacity 0.4s ease-in-out",
+                  }}
+                />
+
+                {/* Secondary gradient overlay for perfect seamless blending into background */}
+                <Box
+                  sx={{
+                    display: { xs: "none", md: "block" },
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    width: "45%",
+                    background: `linear-gradient(to right, ${colors.bgCream} 0%, rgba(251, 251, 247, 0.75) 30%, transparent 100%)`,
+                    pointerEvents: "none",
+                  }}
+                />
+              </Box>
+
+              {/* Floating Bottom Badge - Gentle Organic Floating & Interactive Lift */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  bottom: { xs: 8, md: 10 },
+                  left: { xs: 12, md: 20 },
+                  bgcolor: "rgba(255, 255, 255, 0.95)",
+                  backdropFilter: "blur(8px)",
+                  borderRadius: "16px",
+                  px: 1.5,
+                  py: 0.6,
+                  boxShadow:
+                    "0 10px 24px -4px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04)",
+                  border: "1px solid rgba(255, 255, 255, 0.8)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                  zIndex: 2,
+                  animation:
+                    "heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s backwards, gentleFloat 5s ease-in-out 1.35s infinite",
+                  transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  cursor: "default",
+                  "&:hover": {
+                    transform: "translateY(-6px) scale(1.02)",
+                    boxShadow:
+                      "0 14px 28px -4px rgba(0, 0, 0, 0.14), 0 6px 12px rgba(56, 75, 50, 0.08)",
+                  },
+                }}
+              >
+                <Typography sx={{ fontSize: "0.95rem" }}>🌿</Typography>
+                <Box>
+                  <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, color: colors.textDark, lineHeight: 1.15 }}>
+                    Certified Clinical Dietitian
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.64rem", color: colors.textLight }}>
+                    M.Pharm Pharmacology
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
-            {/* <Paper
-              elevation={0}
+          </Box>
+        </Container>
+      </Box>
+
+      {/* THE SLICK GREEN CURVE BAND (Yogabn Style) */}
+      <Box
+        sx={{
+          position: "relative",
+          bgcolor: colors.darkGreen,
+          color: "#ffffff",
+          pt: { xs: 2.2, md: 2.8 },
+          pb: { xs: 2, md: 2.4 },
+        }}
+      >
+        {/* SVG Wave Curve Transition at Top */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: { xs: -14, md: -20 },
+            left: 0,
+            right: 0,
+            width: "100%",
+            overflow: "hidden",
+            lineHeight: 0,
+          }}
+        >
+          <svg
+            viewBox="0 0 1440 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ width: "100%", height: "24px", display: "block" }}
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,40 C380,6 1060,6 1440,40 L1440,40 L0,40 Z"
+              fill={colors.darkGreen}
+            />
+          </svg>
+        </Box>
+
+        <Container maxWidth="lg" sx={{ textAlign: "center", position: "relative", zIndex: 1 }}>
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 600,
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "rgba(255, 255, 255, 0.85)",
+              mb: 1.25,
+            }}
+          >
+            OUR CLINICAL STANDARDS · ROOTED IN SCIENCE · REAL SUSTAINABILITY
+          </Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              flexWrap: "wrap",
+              gap: { xs: 0.85, md: 1.25 },
+            }}
+          >
+            {clinicalPillars.map((p, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  bgcolor: "rgba(255, 255, 255, 0.12)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  borderRadius: "20px",
+                  px: 1.75,
+                  py: 0.6,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.85,
+                  backdropFilter: "blur(8px)",
+                  transition: "all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.22)",
+                    transform: "translateY(-3px) scale(1.02)",
+                  },
+                }}
+              >
+                <Typography sx={{ fontSize: "0.95rem", lineHeight: 1 }}>{p.icon}</Typography>
+                <Box sx={{ textAlign: "left" }}>
+                  <Typography sx={{ fontSize: "0.76rem", fontWeight: 700, color: "#ffffff", lineHeight: 1.15 }}>
+                    {p.label}
+                  </Typography>
+                  <Typography sx={{ fontSize: "0.64rem", color: "rgba(255, 255, 255, 0.75)", lineHeight: 1.15 }}>
+                    {p.sub}
+                  </Typography>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Sleek Down Forward Arrow at base of green curve */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              mt: 1.25,
+            }}
+          >
+            <Box
+              component="a"
+              href="#benefits"
+              aria-label="Scroll to next section"
               sx={{
-                position: 'absolute', bottom: -20, left: -20,
-                p: '18px 24px', borderRadius: '16px',
-                boxShadow: '0 15px 40px rgba(0,0,0,0.12)',
-                display: 'flex', alignItems: 'center', gap: 1.75,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.8,
+                textDecoration: "none",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  transform: "translateY(2px)",
+                },
               }}
             >
               <Box
                 sx={{
-                  width: 44, height: 44, borderRadius: '10px',
-                  background: gradientBrand,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: colors.white, fontSize: '1.2rem',
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  bgcolor: "rgba(255, 255, 255, 0.18)",
+                  border: "1.5px solid rgba(255, 255, 255, 0.35)",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  animation: "bounceDownArrow 2.2s ease-in-out infinite, pulseGlow 2.2s ease-in-out infinite",
+                  "@keyframes bounceDownArrow": {
+                    "0%, 100%": {
+                      transform: "translateY(0)",
+                    },
+                    "50%": {
+                      transform: "translateY(5px)",
+                    },
+                  },
+                  "@keyframes pulseGlow": {
+                    "0%, 100%": {
+                      boxShadow: "0 0 0 0 rgba(255, 255, 255, 0.4)",
+                    },
+                    "50%": {
+                      boxShadow: "0 0 0 8px rgba(255, 255, 255, 0)",
+                    },
+                  },
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.3)",
+                  },
                 }}
               >
-                🎓
+                <KeyboardArrowDownIcon sx={{ fontSize: 20 }} />
               </Box>
-              <Box>
-                <Typography sx={{ fontWeight: 700, fontSize: '1.05rem', lineHeight: 1.2 }}>M.Sc. Nutrition</Typography>
-                <Typography sx={{ fontSize: '0.78rem', color: colors.textLight }}>Registered Dietitian</Typography>
-              </Box>
-            </Paper> */}
+            </Box>
           </Box>
+        </Container>
+      </Box>
+
+      {/* Video Modal */}
+      <Dialog
+        open={videoOpen}
+        onClose={() => setVideoOpen(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: "18px", overflow: "hidden", bgcolor: "#000" },
+        }}
+      >
+        <Box sx={{ position: "relative", pt: "56.25%" }}>
+          <IconButton
+            onClick={() => setVideoOpen(false)}
+            sx={{
+              position: "absolute",
+              top: 10,
+              right: 10,
+              bgcolor: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              zIndex: 10,
+              "&:hover": { bgcolor: "rgba(0,0,0,0.85)" },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {youtubeId ? (
+            <Box
+              component="iframe"
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0`}
+              title="Introduction"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                border: "none",
+              }}
+            />
+          ) : (
+            <Box
+              component="video"
+              src={hero?.videoUrl}
+              autoPlay
+              controls
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+            />
+          )}
         </Box>
-      </Container>
+      </Dialog>
     </Box>
   );
 }

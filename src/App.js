@@ -7,11 +7,10 @@ import { FeedbackProvider } from "./context/FeedbackContext";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import BannerStrip from "./components/BannerStrip";
-import { KeyServicesStrip, WhyChooseMe } from "./components/KeyServices";
+import { KeyServicesStrip } from "./components/KeyServices";
 import HowItWorks from "./components/HowItWorks";
 import Testimonials from "./components/Testimonials";
 import About from "./components/About";
-import Services from "./components/Services";
 import HealthTools from "./components/HealthTools";
 // import Programs from "./components/Programs";
 import Contact from "./components/Contact";
@@ -22,6 +21,13 @@ import BookingErrorBoundary from "./components/BookingErrorBoundary";
 import OfferModal from "./components/OfferModal";
 import AdminDashboard from "./components/AdminDashboard";
 import LegalPage from "./components/LegalPage";
+import DietQuiz from "./components/DietQuiz";
+import StickyMobileCTA from "./components/StickyMobileCTA";
+import ValuePillars from "./components/ValuePillars";
+import CustomPageScrollbar from "./components/CustomPageScrollbar";
+import ScrollToTopButton from "./components/ScrollToTopButton";
+import RevealOnScroll from "./components/RevealOnScroll";
+import { colors } from "./theme";
 
 function MainSite({ autoOpenBooking = false }) {
   const location = useLocation();
@@ -53,32 +59,17 @@ function MainSite({ autoOpenBooking = false }) {
     return () => observer.disconnect();
   }, []);
 
+  // Natural fluid scrolling with smooth reveals
   return (
     <BookingProvider initialOpen={shouldAutoOpen}>
       <Box
         sx={{
           position: "relative",
           minHeight: "100vh",
-          backgroundColor: "#ffffff",
-          backgroundImage: {
-            xs: `
-        linear-gradient(rgba(255,255,255,0.8), rgba(255,255,255,0.8)),
-        url("/assets/images/HeroBgMobile.png")
-      `,
-            md: `
-        linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)),
-        url("/assets/images/HeroBg.png")
-      `,
-          },
-          backgroundRepeat: "no-repeat",
-          backgroundPosition: "center top",
-          backgroundSize: "100% auto",
-          backgroundAttachment: {
-            xs: "fixed",
-            md: "fixed",
-          },
+          backgroundColor: colors.bgCream,
         }}
       >
+        <CustomPageScrollbar topOffset={topOffset} />
         <Box
           ref={topBarRef}
           sx={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1100 }}
@@ -87,25 +78,48 @@ function MainSite({ autoOpenBooking = false }) {
           <Header />
         </Box>
         <Box sx={{ position: "relative", zIndex: 1 }}>
-          <Hero topOffset={topOffset} />
-          <KeyServicesStrip />
-          <WhyChooseMe />
-          <HowItWorks />
-          <Testimonials />
-          <About />
-          <Services />
-          <HealthTools />
-          {/* <Programs /> */}
-          <Contact />
-          <FAQ />
-          <FinalCTA />
+          <Box id="home" sx={{ position: "relative" }}>
+            <Hero topOffset={topOffset} />
+          </Box>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <ValuePillars />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <KeyServicesStrip />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <About />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <DietQuiz />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <HowItWorks />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <Testimonials />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <HealthTools />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <FAQ />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ scrollMarginTop: `${topOffset}px` }}>
+            <Contact />
+          </RevealOnScroll>
+          <RevealOnScroll sx={{ bgcolor: "#202E1F", scrollMarginTop: `${topOffset}px` }}>
+            <FinalCTA />
+          </RevealOnScroll>
           <Footer />
         </Box>
+        <ScrollToTopButton />
         <WhatsAppFloat />
+        <StickyMobileCTA />
         <BookingErrorBoundary>
           <BookingFlow />
         </BookingErrorBoundary>
-        {!shouldAutoOpen && <OfferModal />}
+        <OfferModal />
       </Box>
     </BookingProvider>
   );

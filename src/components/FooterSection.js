@@ -5,7 +5,8 @@ import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import InstagramIcon from "@mui/icons-material/Instagram";
 import EmailIcon from "@mui/icons-material/Email";
 import EventIcon from "@mui/icons-material/Event";
-import { colors, gradientBrand } from "../theme";
+import { colors } from "../theme";
+import BrandLogo from "./BrandLogo";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
 import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
@@ -21,46 +22,58 @@ export function FinalCTA() {
   return (
     <Box
       sx={{
-        background: gradientBrand,
-        py: 9,
+        bgcolor: colors.primaryDark,
+        py: { xs: 6, md: 8 },
         textAlign: "center",
-        color: colors.white,
+        color: "#ffffff",
       }}
     >
       <Container maxWidth="md">
-        <Typography variant="h2" sx={{ fontSize: "2.2rem", mb: 1.75 }}>
-          Ready to Start Your Health Journey?
+        <Typography
+          component="h2"
+          sx={{
+            fontSize: { xs: "1.6rem", md: "2.1rem" },
+            fontWeight: 700,
+            mb: 1.5,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          Start Your Health Transformation
         </Typography>
         <Typography
           sx={{
-            fontSize: "1.05rem",
-            opacity: 0.95,
-            mb: 4,
-            maxWidth: 550,
+            fontSize: "0.94rem",
+            opacity: 0.9,
+            mb: 3.5,
+            maxWidth: 520,
             mx: "auto",
+            lineHeight: 1.65,
           }}
         >
-          Book a free discovery call today and take the first step toward a
-          healthier, more energetic you.
+          Book a 1-on-1 consultation and get an evidence-based roadmap tailored
+          to your body, routine, and health goals.
         </Typography>
         <Stack
-          direction="row"
-          spacing={2}
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
           justifyContent="center"
-          flexWrap="wrap"
-          useFlexGap
+          alignItems="center"
         >
           <Button
             onClick={openBooking}
             variant="contained"
             size="large"
-            startIcon={<EventIcon />}
+            startIcon={<EventIcon sx={{ fontSize: "1.1rem" }} />}
             sx={{
-              bgcolor: colors.white,
-              color: colors.primary,
-              py: 1.6,
-              px: 4,
-              "&:hover": { bgcolor: "#f1f1f1" },
+              bgcolor: "#ffffff",
+              color: colors.primaryDark,
+              py: 1.2,
+              px: 3.5,
+              borderRadius: "24px",
+              fontWeight: 600,
+              fontSize: "0.88rem",
+              boxShadow: "none",
+              "&:hover": { bgcolor: colors.bgCream, boxShadow: "none" },
             }}
           >
             Book Consultation
@@ -72,14 +85,19 @@ export function FinalCTA() {
             onClick={() => trackWhatsAppClick("Final CTA")}
             variant="outlined"
             size="large"
-            startIcon={<WhatsAppIcon />}
+            startIcon={<WhatsAppIcon sx={{ fontSize: "1.1rem" }} />}
             sx={{
-              borderColor: colors.white,
-              color: colors.white,
-              borderWidth: 2,
-              py: 1.6,
-              px: 4,
-              "&:hover": { borderWidth: 2, bgcolor: "rgba(255,255,255,0.15)" },
+              borderColor: "rgba(255,255,255,0.4)",
+              color: "#ffffff",
+              borderRadius: "24px",
+              py: 1.1,
+              px: 3,
+              fontWeight: 500,
+              fontSize: "0.88rem",
+              "&:hover": {
+                borderColor: "#ffffff",
+                bgcolor: "rgba(255,255,255,0.1)",
+              },
             }}
           >
             WhatsApp Me
@@ -109,7 +127,7 @@ export function Footer() {
   return (
     <Box
       component="footer"
-      sx={{ bgcolor: "#0f172a", color: "#cbd5e1", py: 7.5 }}
+      sx={{ bgcolor: "#202E1F", color: "#d4ded3", py: 7 }}
     >
       <Container maxWidth="lg">
         <Box
@@ -121,19 +139,8 @@ export function Footer() {
           }}
         >
           <Box sx={{ gridColumn: { xs: "1 / -1", md: "auto" } }}>
-            <Box
-              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}
-            >
-              <Box
-                component="img"
-                src="/assets/images/NutritionWithRuchikaFooter.png"
-                alt="Nutrition with Ruchika"
-                sx={{
-                  width: { xs: 150, sm: 175, md: 205 },
-                  height: "auto",
-                  display: "block",
-                }}
-              />
+            <Box sx={{ mb: 2 }}>
+              <BrandLogo isDark scale={1.05} />
             </Box>
             <Typography
               sx={{ fontSize: "0.88rem", color: "#94a3b8", lineHeight: 1.7 }}
@@ -332,14 +339,31 @@ export function WhatsAppFloat() {
       onClick={() => trackWhatsAppClick("Float Button")}
       sx={{
         position: "fixed",
-        bottom: 28,
+        bottom: { xs: 80, md: 28 },
         right: 28,
         bgcolor: colors.whatsapp,
         color: colors.white,
         width: 62,
         height: 62,
         boxShadow: "0 8px 24px rgba(37,211,102,0.4)",
-        "&:hover": { bgcolor: "#1fb356", transform: "scale(1.1)" },
+        animation: "waPulse 3.5s ease-in-out infinite",
+        "@keyframes waPulse": {
+          "0%, 100%": {
+            boxShadow: "0 8px 24px rgba(37,211,102,0.4)",
+          },
+          "50%": {
+            boxShadow: "0 8px 30px rgba(37,211,102,0.7), 0 0 0 10px rgba(37,211,102,0.15)",
+          },
+        },
+        "@media (prefers-reduced-motion: reduce)": {
+          animation: "none !important",
+        },
+        transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "&:hover": {
+          bgcolor: "#1fb356",
+          transform: "scale(1.08)",
+          boxShadow: "0 12px 28px rgba(37,211,102,0.6)",
+        },
       }}
     >
       <WhatsAppIcon sx={{ fontSize: "1.7rem" }} />

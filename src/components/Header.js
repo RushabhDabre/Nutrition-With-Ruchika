@@ -15,16 +15,17 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { colors } from "../theme";
+import BrandLogo from "./BrandLogo";
 import { useBooking } from "../context/BookingContext";
 import { useSiteContent } from "../context/SiteContentContext";
 import { getWhatsAppUrl, trackWhatsAppClick } from "../utils/analytics";
 
 const navItems = [
   { label: "About", href: "#about" },
-  { label: "Services", href: "#services" },
-  { label: "Health Tools", href: "#health-tools" },
-  // { label: 'Programs', href: '#programs' },
-  { label: "Testimonials", href: "#testimonials" },
+  { label: "Benefits", href: "#benefits" },
+  { label: "Programs", href: "#programs" },
+  { label: "Reviews", href: "#testimonials" },
+  { label: "Tools", href: "#health-tools" },
   { label: "FAQ", href: "#faq" },
   { label: "Contact", href: "#contact" },
 ];
@@ -34,7 +35,7 @@ export default function Header() {
   const { openBooking } = useBooking();
   const { contact } = useSiteContent();
   const whatsappLink = getWhatsAppUrl(
-    contact.whatsappNumber,
+    contact?.whatsappNumber || "919876543210",
     "Hi Dietitian Ruchika! I saw your website and would like to know more about consultation and diet plans."
   );
 
@@ -43,17 +44,21 @@ export default function Header() {
       position="static"
       elevation={0}
       sx={{
-        bgcolor: "rgba(255,255,255,0.95)",
-        backdropFilter: "blur(10px)",
-        borderBottom: `1px solid ${colors.border}`,
+        bgcolor: colors.bgCream,
         color: colors.textDark,
+        pt: { xs: 1, md: 1.5 },
+        pb: 1,
       }}
     >
       <Container maxWidth="lg">
         <Toolbar
           disableGutters
-          sx={{ py: 1.5, justifyContent: "space-between" }}
+          sx={{
+            justifyContent: "space-between",
+            minHeight: "54px !important",
+          }}
         >
+          {/* Logo */}
           <Box
             component="a"
             href="#home"
@@ -65,23 +70,22 @@ export default function Header() {
               flexShrink: 0,
             }}
           >
-            <Box
-              component="img"
-              src="/assets/images/NutritionWithRuchikaHeader.png"
-              alt="Nutrition with Ruchika"
-              sx={{
-                width: { xs: 150, sm: 175, md: 205 },
-                height: "auto",
-                display: "block",
-              }}
-            />
+            <BrandLogo />
           </Box>
 
+          {/* Yogabn-style Floating Uplifted Nav Pill */}
           <Box
             sx={{
               display: { xs: "none", md: "flex" },
-              gap: 4,
               alignItems: "center",
+              gap: 3.2,
+              bgcolor: colors.bgWhite,
+              px: 3.5,
+              py: 1,
+              borderRadius: "40px",
+              boxShadow:
+                "0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.04)",
+              border: "none",
             }}
           >
             {navItems.map((item) => (
@@ -90,11 +94,12 @@ export default function Header() {
                 component="a"
                 href={item.href}
                 sx={{
-                  color: colors.textLight,
+                  color: colors.textMuted,
                   textDecoration: "none",
                   fontWeight: 500,
-                  fontSize: "0.92rem",
-                  "&:hover": { color: colors.primary },
+                  fontSize: "0.84rem",
+                  transition: "color 0.15s ease",
+                  "&:hover": { color: colors.primaryDark },
                 }}
               >
                 {item.label}
@@ -102,39 +107,57 @@ export default function Header() {
             ))}
           </Box>
 
+          {/* Right Action: Pill Book Button & WhatsApp */}
           <Box
             sx={{
               display: { xs: "none", md: "flex" },
-              gap: 1.5,
+              gap: 1.25,
               alignItems: "center",
             }}
           >
-            <Button
-              onClick={openBooking}
-              variant="outlined"
-              sx={{ borderWidth: 2, "&:hover": { borderWidth: 2 } }}
-            >
-              Book Consultation
-            </Button>
             <Button
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
               onClick={() => trackWhatsAppClick("Header CTA")}
-              variant="contained"
-              startIcon={<WhatsAppIcon />}
+              variant="text"
+              startIcon={<WhatsAppIcon sx={{ fontSize: "1.05rem", color: colors.whatsapp }} />}
               sx={{
-                bgcolor: colors.whatsapp,
-                boxShadow: "0 4px 15px rgba(37,211,102,0.3)",
-                "&:hover": { bgcolor: "#1fb356" },
+                color: colors.textDark,
+                fontWeight: 500,
+                fontSize: "0.84rem",
+                px: 1.5,
+                py: 0.7,
+                "&:hover": { bgcolor: "rgba(0,0,0,0.04)" },
               }}
             >
               WhatsApp
             </Button>
+            <Button
+              onClick={openBooking}
+              variant="contained"
+              sx={{
+                bgcolor: colors.primaryDark,
+                color: "#ffffff",
+                fontWeight: 600,
+                borderRadius: "30px",
+                px: 2.5,
+                py: 0.85,
+                fontSize: "0.84rem",
+                boxShadow: "none",
+                "&:hover": {
+                  bgcolor: colors.primary,
+                  boxShadow: "none",
+                },
+              }}
+            >
+              Book Consultation
+            </Button>
           </Box>
 
+          {/* Mobile Menu Icon */}
           <IconButton
-            sx={{ display: { xs: "flex", md: "none" } }}
+            sx={{ display: { xs: "flex", md: "none" }, color: colors.textDark }}
             onClick={() => setDrawerOpen(true)}
           >
             <MenuIcon />
@@ -142,49 +165,69 @@ export default function Header() {
         </Toolbar>
       </Container>
 
+      {/* Mobile Drawer */}
       <Drawer
         anchor="right"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >
         <Box
-          sx={{ width: 260, pt: 2 }}
+          sx={{ width: 260, pt: 3, px: 2, bgcolor: colors.bgCream, height: "100%" }}
           role="presentation"
           onClick={() => setDrawerOpen(false)}
         >
+          <Box sx={{ mb: 2, px: 1 }}>
+            <BrandLogo scale={0.88} />
+          </Box>
           <List>
             {navItems.map((item) => (
-              <ListItemButton key={item.label} component="a" href={item.href}>
-                <ListItemText primary={item.label} />
+              <ListItemButton
+                key={item.label}
+                component="a"
+                href={item.href}
+                sx={{ borderRadius: "8px", py: 1 }}
+              >
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{ fontSize: "0.9rem", fontWeight: 500, color: colors.textDark }}
+                />
               </ListItemButton>
             ))}
-            <ListItemButton onClick={openBooking} sx={{ mt: 1 }}>
-              <ListItemText
-                primary="Book Consultation"
-                primaryTypographyProps={{
-                  fontWeight: 700,
-                  color: colors.primary,
+            <Box sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+              <Button
+                onClick={openBooking}
+                fullWidth
+                variant="contained"
+                sx={{
+                  bgcolor: colors.primaryDark,
+                  color: "#fff",
+                  py: 1.1,
+                  borderRadius: "24px",
+                  fontSize: "0.86rem",
+                  "&:hover": { bgcolor: colors.primary },
                 }}
-              />
-            </ListItemButton>
-            <ListItemButton
-              component="a"
-              href={whatsappLink}
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => {
-                setDrawerOpen(false);
-                trackWhatsAppClick("Mobile Drawer");
-              }}
-            >
-              <ListItemText
-                primary="WhatsApp"
-                primaryTypographyProps={{
-                  fontWeight: 700,
-                  color: colors.whatsapp,
+              >
+                Book Consultation
+              </Button>
+              <Button
+                component="a"
+                href={whatsappLink}
+                target="_blank"
+                rel="noreferrer"
+                fullWidth
+                variant="outlined"
+                startIcon={<WhatsAppIcon sx={{ color: colors.whatsapp }} />}
+                sx={{
+                  borderColor: colors.border,
+                  color: colors.textDark,
+                  py: 0.9,
+                  borderRadius: "24px",
+                  fontSize: "0.84rem",
                 }}
-              />
-            </ListItemButton>
+              >
+                WhatsApp Me
+              </Button>
+            </Box>
           </List>
         </Box>
       </Drawer>

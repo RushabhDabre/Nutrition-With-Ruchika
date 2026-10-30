@@ -1,18 +1,47 @@
-import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
-import { colors } from '../theme';
+import React from "react";
+import { Box, Typography } from "@mui/material";
+import { colors } from "../theme";
 
-export default function SectionTitle({ eyebrow, title, subtitle }) {
+export default function SectionTitle({ eyebrow, title, subtitle, align = "center", mb, sx = {} }) {
   return (
-    <Box sx={{ textAlign: 'center', mb: 7 }}>
+    <Box sx={{ textAlign: align, mb: mb !== undefined ? mb : { xs: 2.5, md: 3 }, ...sx }}>
       {eyebrow && (
-        <Chip label={eyebrow} sx={{ bgcolor: 'rgba(99,102,241,0.1)', color: colors.primary, fontWeight: 700, mb: 1.75, px: 1 }} />
+        <Typography
+          sx={{
+            fontSize: "0.72rem",
+            fontWeight: 600,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: colors.primary,
+            mb: 1,
+          }}
+        >
+          {eyebrow}
+        </Typography>
       )}
-      <Typography variant="h2" sx={{ fontSize: { xs: '1.9rem', md: '2.5rem' }, mb: 1.75 }}>
+      <Typography
+        component="h2"
+        sx={{
+          fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2rem" },
+          fontWeight: 700,
+          color: colors.textDark,
+          letterSpacing: "-0.01em",
+          lineHeight: 1.3,
+          mb: subtitle ? 1 : 0,
+        }}
+      >
         {title}
       </Typography>
       {subtitle && (
-        <Typography sx={{ fontSize: '1.05rem', color: colors.textLight, maxWidth: 600, mx: 'auto' }}>
+        <Typography
+          sx={{
+            fontSize: "0.9rem",
+            color: colors.textLight,
+            maxWidth: 520,
+            mx: align === "center" ? "auto" : 0,
+            lineHeight: 1.6,
+          }}
+        >
           {subtitle}
         </Typography>
       )}

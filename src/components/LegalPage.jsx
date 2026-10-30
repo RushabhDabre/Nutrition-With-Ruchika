@@ -14,8 +14,9 @@ import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
 import CurrencyExchangeOutlinedIcon from "@mui/icons-material/CurrencyExchangeOutlined";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
-import { colors, gradientBrand } from "../theme";
+import { colors } from "../theme";
 import { useSiteContent } from "../context/SiteContentContext";
+import BrandLogo from "./BrandLogo";
 import { Footer } from "./FooterSection";
 
 export default function LegalPage({ type }) {
@@ -257,28 +258,7 @@ export default function LegalPage({ type }) {
         <Container maxWidth="md">
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
-              <Box
-                component="img"
-                src="/assets/images/NutritionWithRuchikaLogo.png"
-                alt="Nutrition with Ruchika"
-                sx={{ height: 42, width: "auto" }}
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-              />
-              <Typography
-                variant="h6"
-                fontWeight="800"
-                sx={{
-                  background: gradientBrand,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  ml: 1,
-                  display: { xs: "none", sm: "block" },
-                }}
-              >
-                Nutrition with Ruchika
-              </Typography>
+              <BrandLogo scale={0.88} />
             </Link>
 
             <Button

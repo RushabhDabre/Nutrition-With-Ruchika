@@ -1,74 +1,103 @@
-import React from 'react';
-import { Box, Container, Typography } from '@mui/material';
-import PhoneInTalkIcon from '@mui/icons-material/PhoneInTalk';
-import FactCheckIcon from '@mui/icons-material/FactCheck';
-import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu';
-import { colors, gradientBrand } from '../theme';
-import SectionTitle from './SectionTitle';
+import React from "react";
+import { Box, Container, Typography } from "@mui/material";
+import { colors } from "../theme";
+import SectionTitle from "./SectionTitle";
+import RevealOnScroll from "./RevealOnScroll";
 
 const steps = [
   {
-    icon: <PhoneInTalkIcon sx={{ fontSize: '1.8rem' }} />,
-    title: 'Consultation Call',
-    text: 'Book your slot and hop on a call — we discuss your goals, health history, and lifestyle in detail.',
+    num: "01",
+    title: "1-on-1 Consultation Call",
+    text: "Select your preferred slot and join a 45-60 min deep-dive call to discuss your health history, blood markers, and goals.",
   },
   {
-    icon: <FactCheckIcon sx={{ fontSize: '1.8rem' }} />,
-    title: 'Pick the Right Program',
-    text: "Based on the call, I recommend the program that actually fits your goals and budget — no pressure, no upsell.",
+    num: "02",
+    title: "Customized Food Roadmap",
+    text: "Receive your tailored meal plan crafted strictly around your routine, regional food habits, and metabolic requirements.",
   },
   {
-    icon: <RestaurantMenuIcon sx={{ fontSize: '1.8rem' }} />,
-    title: 'Personalized Plan Starts',
-    text: 'Your custom diet plan is built around your routine and preferences, with regular check-ins to keep you on track.',
+    num: "03",
+    title: "Daily Support & Weekly Review",
+    text: "Stay accountable with daily WhatsApp meal checks, weekend progress reviews, and continuous adjustments for lasting results.",
   },
 ];
 
 export default function HowItWorks() {
   return (
-    <Box component="section" sx={{ py: 5 }}>
+    <Box component="section" sx={{ py: { xs: 6, md: 8 }, bgcolor: colors.bgCream }}>
       <Container maxWidth="lg">
         <SectionTitle
-          eyebrow="How It Works"
-          title="What Happens After You Book"
-          subtitle="A simple, three-step process from your first call to your personalized plan"
+          eyebrow="PROCESS"
+          title="How It Works"
+          subtitle="Three clear, simple steps from your first call to lasting health"
         />
 
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-            gap: { xs: 5, md: 4 },
-            position: 'relative',
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" },
+            gap: 3,
           }}
         >
-          {/* Connecting line - desktop only, sits behind the circles */}
-          <Box
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              position: 'absolute', top: 32, left: '16.5%', right: '16.5%', height: 2,
-              background: colors.border, zIndex: 0,
-            }}
-          />
-
-          {steps.map((step, i) => (
-            <Box key={step.title} sx={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+          {steps.map((step, idx) => (
+            <RevealOnScroll key={step.num} delay={idx * 0.14} variant="fade-up" sx={{ height: "100%" }}>
               <Box
                 sx={{
-                  width: 64, height: 64, borderRadius: '50%', mx: 'auto', mb: 2.5,
-                  background: gradientBrand, color: colors.white,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 8px 24px rgba(99,102,241,0.3)',
+                  bgcolor: colors.bgWhite,
+                  p: { xs: 3, sm: 4 },
+                  borderRadius: "18px",
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  height: "100%",
+                  transition:
+                    "transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-7px)",
+                    borderColor: "rgba(56, 75, 50, 0.28)",
+                    boxShadow:
+                      "0 16px 32px -4px rgba(40, 56, 38, 0.09), 0 6px 14px rgba(0,0,0,0.03)",
+                    "& .step-number": {
+                      color: colors.primaryDark,
+                      transform: "scale(1.08)",
+                    },
+                  },
                 }}
               >
-                {step.icon}
+                <Typography
+                  className="step-number"
+                  sx={{
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    color: colors.primaryLight,
+                    lineHeight: 1,
+                    mb: 2,
+                    display: "inline-block",
+                    transition: "transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.3s ease",
+                  }}
+                >
+                  {step.num}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "1.08rem",
+                    fontWeight: 700,
+                    color: colors.textDark,
+                    mb: 1.25,
+                  }}
+                >
+                  {step.title}
+                </Typography>
+                <Typography
+                  sx={{
+                    color: colors.textMuted,
+                    fontSize: "0.88rem",
+                    lineHeight: 1.65,
+                  }}
+                >
+                  {step.text}
+                </Typography>
               </Box>
-              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: colors.primary, mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Step {i + 1}
-              </Typography>
-              <Typography sx={{ fontSize: '1.2rem', fontWeight: 700, mb: 1.25 }}>{step.title}</Typography>
-              <Typography sx={{ color: colors.textLight, fontSize: '0.92rem', maxWidth: 280, mx: 'auto' }}>{step.text}</Typography>
-            </Box>
+            </RevealOnScroll>
           ))}
         </Box>
       </Container>

@@ -278,7 +278,7 @@ export default function ClientAssignmentDialog({
                           onClick={() => handleToggle(booking.id)}
                           sx={{
                             cursor: "pointer",
-                            bgcolor: isSelected ? "rgba(99, 102, 241, 0.04)" : "inherit",
+                            bgcolor: isSelected ? "rgba(56, 75, 50, 0.05)" : "inherit",
                           }}
                         >
                           <TableCell padding="checkbox">

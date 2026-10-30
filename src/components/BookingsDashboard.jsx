@@ -784,7 +784,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                                     href={booking.driveFolderUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    sx={{ color: '#4f46e5' }}
+                                    sx={{ color: colors.primaryDark }}
                                   >
                                     <FolderSharedIcon fontSize="small" />
                                   </IconButton>
@@ -894,7 +894,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
               <Box sx={{ py: 2, bgcolor: '#f8fafc', p: 2.5, borderRadius: 2.5, border: '1px solid #e2e8f0' }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <FolderSharedIcon sx={{ fontSize: 20, color: '#4f46e5' }} />
+                    <FolderSharedIcon sx={{ fontSize: 20, color: colors.primaryDark }} />
                     <Typography variant="subtitle2" fontWeight={700}>
                       Client Vault & Documents
                     </Typography>
@@ -1072,7 +1072,7 @@ export default function BookingsDashboard({ userRole = 'SUPER_ADMIN', permission
                                 href={getDocumentViewUrl(doc)}
                                 target="_blank"
                                 rel="noreferrer"
-                                sx={{ color: '#4f46e5' }}
+                                sx={{ color: colors.primaryDark }}
                               >
                                 <LaunchIcon fontSize="small" />
                               </IconButton>

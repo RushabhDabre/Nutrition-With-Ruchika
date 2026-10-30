@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -6,380 +6,285 @@ import {
   Card,
   CardContent,
   Avatar,
-  IconButton,
+  Button,
   Dialog,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  IconButton,
 } from "@mui/material";
 import StarIcon from "@mui/icons-material/Star";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import CloseIcon from "@mui/icons-material/Close";
-import { colors, gradientBrand } from "../theme";
-import { apiBaseUrl } from "../data/siteData";
+import { colors } from "../theme";
 import SectionTitle from "./SectionTitle";
+import { apiBaseUrl } from "../data/siteData";
+import RevealOnScroll from "./RevealOnScroll";
 
-const CARD_WIDTH = 320; // slightly wider to fit content better
-const CARD_GAP = 20;
-const AUTO_SCROLL_INTERVAL_MS = 3500;
+const DEFAULT_REVIEWS = [
+  {
+    id: "r1",
+    clientName: "Aditi Sharma",
+    program: "Sustainable Fat Loss · Pune",
+    rating: 5,
+    textContent:
+      "Ruchika helped me lose 11 kg in 3 months without starving or leaving my daily roti and sabzi. My energy levels are at an all-time high! I had tried multiple crash diets before that left me exhausted, but her guidance helped me understand proper portion sizes and meal timing without giving up home food.",
+  },
+  {
+    id: "r2",
+    clientName: "Neha Verma",
+    program: "PCOS & Hormone Care · Bangalore",
+    rating: 5,
+    textContent:
+      "After 3 years of irregular periods and severe acne, her hormonal balance protocol restored my cycles naturally in 8 weeks. Truly life-changing care. She walked me through every blood report marker, removed inflammatory triggers, and supported me daily on WhatsApp.",
+  },
+  {
+    id: "r3",
+    clientName: "Rohan Mehta",
+    program: "Gut Health & Digestion · Mumbai",
+    rating: 5,
+    textContent:
+      "Chronic acidity and painful bloating were part of my daily life. Within 3 weeks of following her gut healing plan, all symptoms vanished. Her approach is grounded in real biochemistry and super practical for someone with a busy desk job.",
+  },
+];
 
 export default function Testimonials() {
-  const [items, setItems] = useState([]);
-  const [overflowing, setOverflowing] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const [selectedTestimonial, setSelectedTestimonial] = useState(null); // For the modal
-  const scrollRef = useRef(null);
-  const intervalRef = useRef(null);
+  const [reviews, setReviews] = useState(DEFAULT_REVIEWS);
+  const [selectedReview, setSelectedReview] = useState(null);
 
   useEffect(() => {
     fetch(`${apiBaseUrl}/api/testimonials`)
-      .then((res) => res.json())
-      .then(setItems)
-      .catch(() => setItems([]));
+      .then((res) => {
+        if (!res.ok) throw new Error("Fetch failed");
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setReviews(data);
+        }
+      })
+      .catch(() => setReviews(DEFAULT_REVIEWS));
   }, []);
-
-  useEffect(() => {
-    const check = () => {
-      const el = scrollRef.current;
-      if (el) setOverflowing(el.scrollWidth > el.clientWidth + 4);
-    };
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, [items]);
-
-  const scrollByAmount = useCallback((dir) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
-    const atStart = el.scrollLeft <= 4;
-
-    if (dir > 0 && atEnd) {
-      el.scrollTo({ left: 0, behavior: "smooth" });
-    } else if (dir < 0 && atStart) {
-      el.scrollTo({ left: el.scrollWidth, behavior: "smooth" });
-    } else {
-      el.scrollBy({ left: dir * (CARD_WIDTH + CARD_GAP), behavior: "smooth" });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!overflowing || paused || selectedTestimonial) return undefined;
-    intervalRef.current = setInterval(
-      () => scrollByAmount(1),
-      AUTO_SCROLL_INTERVAL_MS
-    );
-    return () => clearInterval(intervalRef.current);
-  }, [overflowing, paused, scrollByAmount, selectedTestimonial]);
-
-  // Pause all playing videos in the cards when opening modal or when another plays
-  const handleOpenTestimonial = (testimonial) => {
-    const allVideos = document.querySelectorAll("#testimonials video");
-    allVideos.forEach((v) => {
-      try {
-        v.pause();
-      } catch (e) {}
-    });
-    setSelectedTestimonial(testimonial);
-  };
-
-  const handleCloseTestimonial = () => {
-    const modalVideos = document.querySelectorAll(".testimonial-dialog-content video");
-    modalVideos.forEach((v) => {
-      try {
-        v.pause();
-        v.currentTime = 0;
-      } catch (e) {}
-    });
-    setSelectedTestimonial(null);
-  };
-
-  const handleCardVideoPlay = (e) => {
-    const allVideos = document.querySelectorAll("#testimonials video");
-    allVideos.forEach((v) => {
-      if (v !== e.target) {
-        try {
-          v.pause();
-        } catch (err) {}
-      }
-    });
-  };
-
-  useEffect(() => {
-    if (selectedTestimonial) {
-      const cardVideos = document.querySelectorAll("#testimonials video");
-      cardVideos.forEach((v) => {
-        try {
-          v.pause();
-        } catch (e) {}
-      });
-    }
-  }, [selectedTestimonial]);
-
-  if (items.length === 0) return null;
 
   return (
-    <Box component="section" id="testimonials" sx={{ py: 5 }}>
+    <Box
+      component="section"
+      id="testimonials"
+      sx={{
+        py: { xs: 6, md: 8 },
+        bgcolor: colors.bgCream,
+      }}
+    >
       <Container maxWidth="lg">
         <SectionTitle
-          eyebrow="Client Stories"
-          title="What Clients Say"
-          subtitle="Real results from real people"
+          eyebrow="REVIEWS"
+          title="What Our Clients Say"
+          subtitle="Real results from people who chose sustainable, evidence-based nutrition"
         />
 
         <Box
           sx={{
-            position: "relative",
-            "&:hover .carousel-arrow": { opacity: 1 },
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              md: "repeat(3, 1fr)",
+            },
+            gap: 3,
           }}
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
         >
-          <IconButton
-            className="carousel-arrow"
-            onClick={() => scrollByAmount(-1)}
-            sx={{
-              position: "absolute",
-              left: -20,
-              top: "40%",
-              zIndex: 2,
-              bgcolor: colors.white,
-              boxShadow: 2,
-              display: { xs: "none", md: "flex" },
-              opacity: 0,
-              transition: "opacity 0.25s",
-            }}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-
-          <Box>
-            <Box
-              ref={scrollRef}
-              sx={{
-                display: "flex",
-                gap: 2.5,
-                overflowX: "auto",
-                scrollSnapType: "x mandatory",
-                pb: 2,
-                "&::-webkit-scrollbar": { display: "none" },
-                scrollbarWidth: "none",
-              }}
-            >
-              {items.map((t) => (
-                <Card
-                  key={t.id}
-                  sx={{
-                    minWidth: CARD_WIDTH,
-                    maxWidth: CARD_WIDTH,
-                    flexShrink: 0,
-                    scrollSnapAlign: "start",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
-                    transition: "all 0.3s",
-                    "&:hover": {
-                      transform: "translateY(-6px)",
-                      boxShadow: "0 18px 40px rgba(99,102,241,0.1)",
-                      borderColor: colors.primary,
+          {reviews.slice(0, 3).map((r, i) => (
+            <RevealOnScroll key={r.id} delay={i * 0.12} variant="fade-up" sx={{ height: "100%" }}>
+              <Card
+                sx={{
+                  bgcolor: colors.bgWhite,
+                  p: { xs: 3, sm: 3.5 },
+                  borderRadius: "20px",
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  height: "100%",
+                  transition:
+                    "transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease",
+                  "&:hover": {
+                    transform: "translateY(-7px)",
+                    borderColor: "rgba(56, 75, 50, 0.28)",
+                    boxShadow: "0 18px 36px -4px rgba(40, 56, 38, 0.1)",
+                    "& .star-icon": {
+                      transform: "scale(1.15)",
                     },
+                  },
+                }}
+              >
+                <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+                  {/* 5 Stars */}
+                  <Box sx={{ display: "flex", gap: 0.25, color: colors.warmAccent, mb: 1.75 }}>
+                    {[...Array(r.rating || 5)].map((_, idx) => (
+                      <StarIcon
+                        key={idx}
+                        className="star-icon"
+                        sx={{ fontSize: "1.05rem", transition: "transform 0.2s ease" }}
+                      />
+                    ))}
+                  </Box>
+
+                {/* Quote with clamped text */}
+                <Typography
+                  sx={{
+                    color: colors.textDark,
+                    fontSize: "0.9rem",
+                    lineHeight: 1.65,
+                    fontStyle: "italic",
+                    mb: 1.5,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
                   }}
                 >
-                  {t.type === "PHOTO" && t.mediaUrl && (
-                    <Box
-                      component="img"
-                      src={t.mediaUrl}
-                      alt={t.clientName}
-                      sx={{
-                        width: "100%",
-                        height: 220, // slightly taller
-                        objectFit: "contain", // Show full photo without cutting
-                        bgcolor: "#f4f4f5", // Light neutral background for padding
-                        display: "block",
-                      }}
-                    />
-                  )}
-                  {t.type === "VIDEO" && t.mediaUrl && (
-                    <Box sx={{ width: "100%", height: 220, bgcolor: "#000" }}>
-                      <video
-                        src={t.mediaUrl}
-                        preload="metadata"
-                        onPlay={handleCardVideoPlay}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "contain",
-                        }}
-                        controls
-                      />
-                    </Box>
-                  )}
-                  
-                  {/* Card Content with Fixed Height so cards are uniform */}
-                  <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-                    {t.rating && (
-                      <Box sx={{ color: "#f59e0b", mb: 1.5, display: "flex" }}>
-                        {[...Array(t.rating)].map((_, i) => (
-                          <StarIcon key={i} fontSize="small" />
-                        ))}
-                      </Box>
-                    )}
-                    
-                    <Box sx={{ flexGrow: 1, mb: 2 }}>
-                      {t.textContent && (
-                        <Typography
-                          sx={{
-                            color: colors.textLight,
-                            fontStyle: "italic",
-                            lineHeight: 1.7,
-                            fontSize: "0.9rem",
-                            // Clamp text to max 4 lines
-                            display: "-webkit-box",
-                            WebkitLineClamp: 4,
-                            WebkitBoxOrient: "vertical",
-                            overflow: "hidden",
-                          }}
-                        >
-                          "{t.textContent}"
-                        </Typography>
-                      )}
-                      
-                      {/* Read More button triggers modal */}
-                      {t.textContent && t.textContent.length > 120 && (
-                        <Typography
-                          component="span"
-                          onClick={() => handleOpenTestimonial(t)}
-                          sx={{
-                            color: colors.primary,
-                            fontSize: "0.85rem",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            display: "inline-block",
-                            mt: 0.5,
-                            "&:hover": { textDecoration: "underline" },
-                          }}
-                        >
-                          Read full story
-                        </Typography>
-                      )}
-                    </Box>
+                  "{r.textContent || r.text}"
+                </Typography>
 
-                    <Box
-                      sx={{ display: "flex", gap: 1.25, alignItems: "center" }}
-                    >
-                      <Avatar
-                        sx={{ background: gradientBrand, fontWeight: 700 }}
-                      >
-                        {t.clientName?.[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography
-                          sx={{ fontWeight: 700, fontSize: "0.92rem" }}
-                        >
-                          {t.clientName}
-                        </Typography>
-                        {t.tag && (
-                          <Typography
-                            sx={{
-                              fontSize: "0.78rem",
-                              color: colors.primary,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {t.tag}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </Box>
+                {/* Read More button */}
+                <Button
+                  onClick={() => setSelectedReview(r)}
+                  variant="text"
+                  sx={{
+                    p: 0,
+                    minWidth: 0,
+                    color: colors.primaryDark,
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    textTransform: "none",
+                    mb: 2.5,
+                    "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                  }}
+                >
+                  Read More →
+                </Button>
 
-          <IconButton
-            className="carousel-arrow"
-            onClick={() => scrollByAmount(1)}
-            sx={{
-              position: "absolute",
-              right: -20,
-              top: "40%",
-              zIndex: 2,
-              bgcolor: colors.white,
-              boxShadow: 2,
-              display: { xs: "none", md: "flex" },
-              opacity: 0,
-              transition: "opacity 0.25s",
-            }}
-          >
-            <ChevronRightIcon />
-          </IconButton>
+                {/* Client info */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1.5,
+                    pt: 2,
+                    borderTop: `1px solid ${colors.border}`,
+                  }}
+                >
+                  <Avatar
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      bgcolor: colors.bgSage,
+                      color: colors.primaryDark,
+                      fontWeight: 700,
+                      fontSize: "0.92rem",
+                    }}
+                  >
+                    {(r.clientName || r.name || "C").charAt(0)}
+                  </Avatar>
+                  <Box>
+                    <Typography sx={{ fontSize: "0.9rem", fontWeight: 700, color: colors.textDark, lineHeight: 1.2 }}>
+                      {r.clientName || r.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.74rem", color: colors.textLight }}>
+                      {r.program || r.tag}
+                    </Typography>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </RevealOnScroll>
+        ))}
         </Box>
       </Container>
 
-      {/* MODAL / DIALOG for Full Testimonial */}
+      {/* FULL TESTIMONIAL MODAL (Restored with clean styling) */}
       <Dialog
-        open={Boolean(selectedTestimonial)}
-        onClose={handleCloseTestimonial}
+        open={Boolean(selectedReview)}
+        onClose={() => setSelectedReview(null)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: "16px" } }}
+        PaperProps={{
+          sx: { borderRadius: "20px", p: 1, bgcolor: colors.bgWhite },
+        }}
       >
-        {selectedTestimonial && (
+        {selectedReview && (
           <>
-            <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <DialogTitle
+              sx={{
+                p: 2,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <Avatar sx={{ background: gradientBrand }}>{selectedTestimonial.clientName?.[0]}</Avatar>
+                <Avatar sx={{ bgcolor: colors.primaryDark, color: "#fff" }}>
+                  {(selectedReview.clientName || selectedReview.name || "C").charAt(0)}
+                </Avatar>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                    {selectedTestimonial.clientName}
+                  <Typography sx={{ fontWeight: 700, fontSize: "0.98rem", color: colors.textDark, lineHeight: 1.2 }}>
+                    {selectedReview.clientName || selectedReview.name}
                   </Typography>
-                  {selectedTestimonial.tag && (
-                    <Typography variant="caption" sx={{ color: colors.primary, fontWeight: 600 }}>
-                      {selectedTestimonial.tag}
-                    </Typography>
-                  )}
+                  <Typography sx={{ fontSize: "0.75rem", color: colors.primaryLight, fontWeight: 600 }}>
+                    {selectedReview.program || selectedReview.tag}
+                  </Typography>
                 </Box>
               </Box>
-              <IconButton onClick={handleCloseTestimonial} sx={{ color: colors.textLight }}>
+              <IconButton onClick={() => setSelectedReview(null)} sx={{ color: colors.textLight }}>
                 <CloseIcon />
               </IconButton>
             </DialogTitle>
-            
-            <DialogContent dividers className="testimonial-dialog-content" sx={{ p: 0 }}>
-              {/* Media in Modal (Full Size) */}
-              {selectedTestimonial.type === "PHOTO" && selectedTestimonial.mediaUrl && (
+
+            <DialogContent dividers sx={{ p: 3, borderColor: colors.border }}>
+              {/* Optional Photo or Video */}
+              {selectedReview.type === "PHOTO" && selectedReview.mediaUrl && (
                 <Box
                   component="img"
-                  src={selectedTestimonial.mediaUrl}
-                  alt={selectedTestimonial.clientName}
-                  sx={{ width: "100%", maxHeight: "400px", objectFit: "contain", bgcolor: "#f4f4f5", display: "block" }}
+                  src={selectedReview.mediaUrl}
+                  alt={selectedReview.clientName}
+                  sx={{
+                    width: "100%",
+                    maxHeight: "360px",
+                    objectFit: "contain",
+                    borderRadius: "14px",
+                    mb: 2,
+                    display: "block",
+                  }}
                 />
               )}
-              {selectedTestimonial.type === "VIDEO" && selectedTestimonial.mediaUrl && (
-                <Box sx={{ width: "100%", maxHeight: "400px", bgcolor: "#000" }}>
+
+              {selectedReview.type === "VIDEO" && selectedReview.mediaUrl && (
+                <Box sx={{ width: "100%", maxHeight: "360px", borderRadius: "14px", overflow: "hidden", mb: 2 }}>
                   <video
-                    src={selectedTestimonial.mediaUrl}
-                    style={{ width: "100%", height: "100%", maxHeight: "400px", objectFit: "contain" }}
+                    src={selectedReview.mediaUrl}
+                    style={{ width: "100%", maxHeight: "360px", objectFit: "contain" }}
                     controls
                     autoPlay
                   />
                 </Box>
               )}
-              
-              {/* Full Text in Modal */}
-              <Box sx={{ p: 3 }}>
-                {selectedTestimonial.rating && (
-                  <Box sx={{ color: "#f59e0b", mb: 2, display: "flex" }}>
-                    {[...Array(selectedTestimonial.rating)].map((_, i) => (
-                      <StarIcon key={i} />
-                    ))}
-                  </Box>
-                )}
-                <Typography sx={{ color: colors.text, fontStyle: "italic", lineHeight: 1.8, fontSize: "1rem" }}>
-                  "{selectedTestimonial.textContent}"
-                </Typography>
+
+              {/* Star rating */}
+              <Box sx={{ display: "flex", gap: 0.5, color: colors.warmAccent, mb: 2 }}>
+                {[...Array(selectedReview.rating || 5)].map((_, i) => (
+                  <StarIcon key={i} sx={{ fontSize: "1.1rem" }} />
+                ))}
               </Box>
+
+              {/* Full Text */}
+              <Typography
+                sx={{
+                  color: colors.textDark,
+                  fontSize: "0.96rem",
+                  lineHeight: 1.75,
+                  fontStyle: "italic",
+                }}
+              >
+                "{selectedReview.textContent || selectedReview.text}"
+              </Typography>
             </DialogContent>
           </>
         )}

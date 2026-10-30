@@ -339,9 +339,9 @@ export default function EmployeeManager() {
                   variant="outlined"
                   sx={{
                     borderRadius: 3,
-                    borderColor: isSuperAdmin ? "rgba(99, 102, 241, 0.4)" : colors.border,
-                    bgcolor: isSuperAdmin ? "rgba(99, 102, 241, 0.02)" : colors.white,
-                    boxShadow: isSuperAdmin ? "0 4px 20px rgba(99, 102, 241, 0.08)" : "none",
+                    borderColor: isSuperAdmin ? "rgba(56, 75, 50, 0.4)" : colors.border,
+                    bgcolor: isSuperAdmin ? "rgba(56, 75, 50, 0.03)" : colors.white,
+                    boxShadow: isSuperAdmin ? "0 4px 20px rgba(56, 75, 50, 0.08)" : "none",
                     height: "100%",
                     display: "flex",
                     flexDirection: "column",

@@ -12,7 +12,20 @@ function TabPanel({ children, value, index }) {
 function ResultCard({ children }) {
   if (!children) return null;
   return (
-    <Box sx={{ mt: 3, p: 2.5, borderRadius: '12px', background: colors.bgLight, border: `2px solid ${colors.primary}` }}>
+    <Box
+      sx={{
+        mt: 3,
+        p: 2.5,
+        borderRadius: '16px',
+        background: colors.primarySubtle,
+        border: '1px solid rgba(56, 75, 50, 0.2)',
+        animation: 'popResult 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        '@keyframes popResult': {
+          '0%': { opacity: 0, transform: 'scale(0.95) translateY(6px)' },
+          '100%': { opacity: 1, transform: 'scale(1) translateY(0)' },
+        },
+      }}
+    >
       {children}
     </Box>
   );
@@ -196,14 +209,14 @@ export default function HealthTools() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Box component="section" id="health-tools" sx={{ py: 5 }}>
+    <Box component="section" id="health-tools" sx={{ py: { xs: 6, md: 8 }, bgcolor: colors.bgCream }}>
       <Container maxWidth="sm">
         <SectionTitle
-          eyebrow="Free Tools"
+          eyebrow="TOOLS"
           title="Quick Health Calculators"
           subtitle="Get a quick estimate — book a consultation for a plan built around your actual numbers"
         />
-        <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, border: `2px solid ${colors.border}`, borderRadius: '18px' }}>
+        <Paper elevation={0} sx={{ p: { xs: 2.5, sm: 4 }, border: `1px solid ${colors.border}`, borderRadius: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', background: colors.bgWhite }}>
           <Tabs
             value={tab}
             onChange={(e, v) => setTab(v)}

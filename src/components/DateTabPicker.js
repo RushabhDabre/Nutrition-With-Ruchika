@@ -6,8 +6,8 @@ import {
   Tab,
   Typography,
   Button,
-  CircularProgress,
   Alert,
+  Skeleton,
 } from "@mui/material";
 import { colors, gradientBrand } from "../theme";
 import { apiBaseUrl } from "../data/siteData";
@@ -202,8 +202,30 @@ export default function DateTabPicker({ value, onChange, days = 7 }) {
 
   if (loading) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-        <CircularProgress size={24} />
+      <Box sx={{ py: 1 }}>
+        {/* Date Tabs Skeleton */}
+        <Box sx={{ display: "flex", gap: 1, mb: 2, overflowX: "hidden" }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              width={64}
+              height={56}
+              sx={{ borderRadius: "12px", bgcolor: colors.bgSage }}
+            />
+          ))}
+        </Box>
+        {/* Slot Pills Skeleton */}
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 1.25, mt: 1.5 }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={38}
+              sx={{ borderRadius: "10px", bgcolor: colors.bgSage }}
+            />
+          ))}
+        </Box>
       </Box>
     );
   }

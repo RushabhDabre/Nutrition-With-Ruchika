@@ -62,7 +62,7 @@ export default function Services() {
                   "&:hover": {
                     borderColor: colors.primary,
                     transform: "translateY(-6px)",
-                    boxShadow: "0 18px 40px rgba(99,102,241,0.12)",
+                    boxShadow: "0 20px 40px -8px rgba(5, 150, 105, 0.12)",
                   },
                   "&:hover::before": { transform: "scaleX(1)" },
                 }}
@@ -101,7 +101,7 @@ export default function Services() {
                         label={tag}
                         size="small"
                         sx={{
-                          bgcolor: "rgba(99,102,241,0.08)",
+                          bgcolor: "rgba(56,75,50,0.08)",
                           color: colors.primary,
                           fontWeight: 600,
                           fontSize: "0.75rem",

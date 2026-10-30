@@ -86,7 +86,7 @@ export default function Programs() {
                   ...(p.featured && {
                     borderColor: colors.primary,
                     transform: { md: 'scale(1.04)' },
-                    boxShadow: '0 25px 60px rgba(99,102,241,0.18)',
+                    boxShadow: '0 25px 60px rgba(56, 75, 50, 0.15)',
                   }),
                 }}
               >
@@ -127,7 +127,7 @@ export default function Programs() {
                     variant={p.featured ? 'contained' : 'outlined'}
                     sx={
                       p.featured
-                        ? { background: gradientBrand, py: 1.5, boxShadow: '0 4px 15px rgba(99,102,241,0.3)', fontWeight: 700 }
+                        ? { background: gradientBrand, py: 1.5, boxShadow: '0 4px 15px rgba(56, 75, 50, 0.25)', fontWeight: 700 }
                         : { py: 1.5, borderWidth: 2, '&:hover': { borderWidth: 2 }, fontWeight: 700 }
                     }
                   >

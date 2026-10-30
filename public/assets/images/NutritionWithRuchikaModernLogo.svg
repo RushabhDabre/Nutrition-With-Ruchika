@@ -1,0 +1,17 @@
+<svg width="240" height="48" viewBox="0 0 240 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(6, 6)">
+    <!-- Center Petal -->
+    <path d="M18 3.5C18 3.5 11 12 11 19.5C11 23.5 14.1 26.5 18 26.5C21.9 26.5 25 23.5 25 19.5C25 12 18 3.5 18 3.5Z" fill="#384B32"/>
+    <!-- Inner Petal -->
+    <path d="M18 9C18 9 13.5 15 13.5 19.5C13.5 22 15.5 24 18 24C20.5 24 22.5 22 22.5 19.5C22.5 15 18 9 18 9Z" fill="#6B8563" fill-opacity="0.9"/>
+    <!-- Left Leaf -->
+    <path d="M9.5 16C9.5 16 4.5 20.5 5.5 25.5C6 28 8.5 29.5 11.5 28.5C14.5 27.5 16.5 24.5 16.5 21.5C16.5 18.5 9.5 16 9.5 16Z" fill="#7D8E76" fill-opacity="0.85"/>
+    <!-- Right Leaf -->
+    <path d="M26.5 16C26.5 16 31.5 20.5 30.5 25.5C30 28 27.5 29.5 24.5 28.5C21.5 27.5 19.5 24.5 19.5 21.5C19.5 18.5 26.5 16 26.5 16Z" fill="#7D8E76" fill-opacity="0.85"/>
+    <!-- Accent Dot -->
+    <circle cx="18" cy="28.5" r="2" fill="#D4A574"/>
+  </g>
+  <!-- Text -->
+  <text x="50" y="24" font-family="'Plus Jakarta Sans', -apple-system, sans-serif" font-size="16" font-weight="800" fill="#242B23" letter-spacing="-0.2px">Nutrition <tspan font-weight="600" fill="#384B32">with Ruchika</tspan></text>
+  <text x="50" y="36" font-family="'Plus Jakarta Sans', -apple-system, sans-serif" font-size="8.5" font-weight="700" fill="#6B8563" letter-spacing="1.2px">CLINICAL NUTRITION &amp; DIETETICS</text>
+</svg>
